@@ -4,7 +4,6 @@ import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import kotlinx.coroutines.*
-import kotlinx.serialization.Serializable
 import kotlin.coroutines.CoroutineContext
 
 
@@ -18,11 +17,11 @@ object AppEngine : CoroutineScope {
     /**
      *  インスタンスIDが取得できたらサービス環境と判断する
      */
-    val isServiceEnv: Boolean by lazy { GaeEnv.GAE_INSTANCE.value.isNotEmpty()}
+    val isServiceEnv: Boolean by lazy { Env.GAE_INSTANCE.value.isNotEmpty()}
 
     val isLocalEnv:Boolean = !isServiceEnv
 
-    enum class GaeEnv(val key:String) {
+    enum class Env(val key:String) {
         GAE_APPLICATION("GAE_APPLICATION"),
         GAE_DEPLOYMENT_ID("GAE_DEPLOYMENT_ID"),
         GOOGLE_CLOUD_PROJECT("GOOGLE_CLOUD_PROJECT"),
