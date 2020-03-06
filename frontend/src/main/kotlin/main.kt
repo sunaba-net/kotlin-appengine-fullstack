@@ -1,3 +1,5 @@
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
 import vue.Vue
 import vue.VueComponent
 
@@ -22,10 +24,15 @@ class ButtonCounter2:ButtonCounter() {
     }
 }
 
-fun main() {
+suspend fun main() {
     VueComponent("button-counter", ButtonCounter())
     VueComponent("button-counter2", ButtonCounter2())
     Vue(object {
         val el = "#components-demo"
     })
+
+    //var ret = HttpClient().get<String>("/index.html")
+    //println(ret)
+//    println(ret)
+
 }

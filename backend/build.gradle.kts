@@ -20,6 +20,10 @@ dependencies {
     fun ktor(module: String, ver: String = ktorVersion) = "io.ktor:ktor-$module:$ver"
     implementation(ktor("server-core"))
     implementation(ktor("server-netty"))
+    implementation(ktor("client-cio"))
+    implementation(ktor("serialization"))
+
+    implementation("com.google.cloud:google-cloud-tasks:1.28.2")
 }
 
 tasks {

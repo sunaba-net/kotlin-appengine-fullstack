@@ -17,34 +17,41 @@ object AppEngine : CoroutineScope {
     /**
      *  インスタンスIDが取得できたらサービス環境と判断する
      */
-    val isServiceEnv: Boolean by lazy { Env.GAE_INSTANCE.value.isNotEmpty()}
+    val isServiceEnv: Boolean by lazy { Env.GAE_INSTANCE.value.isNotEmpty() }
 
-    val isLocalEnv:Boolean = !isServiceEnv
+    val isLocalEnv: Boolean = !isServiceEnv
 
-    enum class Env(val key:String) {
+    //https://cloud.google.com/appengine/docs/standard/java11/runtime
+    enum class Env(val key: String) {
         GAE_APPLICATION("GAE_APPLICATION"),
         GAE_DEPLOYMENT_ID("GAE_DEPLOYMENT_ID"),
-        GOOGLE_CLOUD_PROJECT("GOOGLE_CLOUD_PROJECT"),
+        GAE_ENV("GAE_ENV"),
+        GAE_INSTANCE("GAE_INSTANCE"),
+        GAE_MEMORY_MB("GAE_MEMORY_MB"),
+        GAE_RUNTIME("GAE_RUNTIME"),
         GAE_SERVICE("GAE_SERVICE"),
         GAE_VERSION("GAE_VERSION"),
-        GAE_INSTANCE("GAE_INSTANCE");
-        val value:String by lazy {
-            System.getenv(key)?:""
+        GOOGLE_CLOUD_PROJECT("GOOGLE_CLOUD_PROJECT"),
+        NODE_ENV("NODE_ENV"),
+        PORT("PORT");
+
+        val value: String by lazy {
+            System.getenv(key) ?: ""
         }
     }
 
+    /**
+     * @see https://cloud.google.com/compute/docs/storing-retrieving-metadata?hl=ja
+     */
     enum class MetaPath(val path: String) {
         NUMERIC_PROJECT_ID("/computeMetadata/v1/project/numeric-project-id"),
         PROJECT_ID("/computeMetadata/v1/project/project-id"),
         ZONE("/computeMetadata/v1/instance/zone"),
         SERVICE_ACCOUNT_DEFAULT_ALIASES("/computeMetadata/v1/instance/service-accounts/default/aliases"),
         SERVICE_ACCOUNT_DEFAULT("/computeMetadata/v1/instance/service-accounts/default/"),
-        SERVICE_ACCOUNT_DEFAULT_SCOPES("/computeMetadata/v1/instance/service-accounts/default/scopes")
+        SERVICE_ACCOUNT_DEFAULT_SCOPES("/computeMetadata/v1/instance/service-accounts/default/scopes");
     }
 
-    /**
-     * @see https://cloud.google.com/compute/docs/storing-retrieving-metadata?hl=ja
-     */
     val metaData: Map<MetaPath, String> by lazy {
         runBlocking {
             val client = HttpClient()
@@ -57,6 +64,12 @@ object AppEngine : CoroutineScope {
                     }
                 }
             }.map { it.first to it.second.await() }.toMap()
+        }
+    }
+
+    val currentRegion: String? by lazy {
+        metaData[MetaPath.ZONE]?.let {
+            it.split("/").last().let { it.substring(0, it.lastIndexOf('-')) }
         }
     }
 }
