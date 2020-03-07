@@ -1,11 +1,6 @@
 group = "org.example"
 version = "1.0-SNAPSHOT"
 
-plugins {
-    kotlin("jvm") version "1.3.70"
-    id ("com.google.cloud.tools.appengine") version "2.2.0"
-    application
-}
 
 
 repositories {
@@ -24,6 +19,7 @@ dependencies {
     implementation(ktor("serialization"))
 
     implementation("com.google.cloud:google-cloud-tasks:1.28.2")
+
 }
 
 tasks {

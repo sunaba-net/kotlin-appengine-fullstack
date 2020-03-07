@@ -1,17 +1,15 @@
 package  vue
 
+class VueData<T>(var data:T)
+
 class VueComponentConfig<T>() {
     var template: String = ""
     lateinit var data: (() -> T)
 }
 
-open class VueComponent<T : Any>(val config: VueComponentConfig<T>.() -> Unit) {
+abstract class VueComponent<T : Any>(val config: VueComponentConfig<T>.() -> Unit) {
     inline val data: T
         get() = js("this.\$data") as T
-
-    init {
-        Vue.component("button-counter", "")
-    }
 }
 
 inline fun <reified T:Any> VueComponent(name:String, component:VueComponent<T>) {

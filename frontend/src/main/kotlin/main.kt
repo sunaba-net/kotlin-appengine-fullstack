@@ -1,7 +1,6 @@
-import io.ktor.client.HttpClient
-import io.ktor.client.request.get
 import vue.Vue
 import vue.VueComponent
+import vue.VueData
 
 open class ButtonCounter : VueComponent<ButtonCounter.CountModel>({
     template = """
@@ -18,21 +17,32 @@ open class ButtonCounter : VueComponent<ButtonCounter.CountModel>({
     }
 }
 
-class ButtonCounter2:ButtonCounter() {
+class ReverseButton : VueComponent<VueData<String>>(
+        {
+            template = """<button v-on:click="${ReverseButton::reverseMessage.name}">{{data}}</button>"""
+            data = { VueData("reverse message") }
+        }
+) {
+    fun reverseMessage() {
+        data.data = data.data.reversed()
+    }
+}
+
+class ButtonCounter2 : ButtonCounter() {
+    init {
+
+    }
+
     override fun onClick() {
-        data.count +=10
+        data.count += 100
     }
 }
 
 suspend fun main() {
     VueComponent("button-counter", ButtonCounter())
     VueComponent("button-counter2", ButtonCounter2())
+    VueComponent("reverse-button", ReverseButton())
     Vue(object {
         val el = "#components-demo"
     })
-
-    //var ret = HttpClient().get<String>("/index.html")
-    //println(ret)
-//    println(ret)
-
 }

@@ -1,12 +1,9 @@
 package net.sunaba
 
-import com.google.auth.oauth2.GoogleCredentials
-import com.google.cloud.tasks.v2.*
-import com.google.cloud.tasks.v2.stub.CloudTasksStubSettings
-import com.google.protobuf.ByteString
 import io.ktor.application.Application
 import io.ktor.application.call
 import io.ktor.application.install
+import io.ktor.features.CORS
 import io.ktor.features.ContentNegotiation
 import io.ktor.features.StatusPages
 import io.ktor.http.ContentType
@@ -16,29 +13,24 @@ import io.ktor.http.content.static
 import io.ktor.response.respond
 import io.ktor.response.respondText
 import io.ktor.routing.get
-import io.ktor.routing.post
 import io.ktor.routing.routing
 import io.ktor.serialization.DefaultJsonConfiguration
 import io.ktor.serialization.serialization
-import io.ktor.util.toByteArray
 import kotlinx.serialization.json.Json
 import net.sunaba.appengine.AppEngine
 import net.sunaba.appengine.CloudTasks
 import net.sunaba.appengine.HelloDeferred
 import java.io.PrintWriter
 import java.io.StringWriter
-import java.lang.Exception
-import java.nio.charset.Charset
 
 fun Application.module() {
-
     install(ContentNegotiation) {
         serialization(contentType = ContentType.Application.Json
                 , json = Json(DefaultJsonConfiguration.copy(prettyPrint = true)))
     }
-
     install(CloudTasks)
-
+    //ローカルで実行時はfrontendからのCORSを有効化する
+    if (AppEngine.isLocalEnv) install(CORS) { host("localhost:8080") }
     install(StatusPages) {
         exception<Throwable> { cause ->
             StringWriter().use {
@@ -53,11 +45,13 @@ fun Application.module() {
     }
 
     routing {
+
         static {
             val staticPath = if (AppEngine.isLocalEnv) "build/staged-app/web" else "web"
             files("$staticPath")
             default("$staticPath/index.html")
         }
+
         get("/hello") {
             call.respondText { "hello" }
         }
