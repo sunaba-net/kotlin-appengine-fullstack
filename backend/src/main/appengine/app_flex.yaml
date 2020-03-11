@@ -1,4 +1,9 @@
-# see https://cloud.google.com/appengine/docs/standard/java11/config/appref?hl=ja
+#https://cloud.google.com/appengine/docs/flexible/custom-runtimes/configuring-your-app-with-app-yaml
 runtime: custom
 env: flex
 service: chat
+resources:
+  cpu: 1
+  memory_gb: 2.3
+manual_scaling:
+  instances: 1

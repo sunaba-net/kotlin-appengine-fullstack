@@ -1,4 +1,4 @@
 FROM openjdk:13-alpine
-COPY . /usr/src/myapp
-WORKDIR /usr/src/myapp
+COPY . /usr/app
+WORKDIR /usr/app
 CMD ["java", "-cp", "./*:./libs/*", "{{mainClassName}}"]
