@@ -18,17 +18,26 @@ import io.ktor.serialization.DefaultJsonConfiguration
 import io.ktor.serialization.serialization
 import kotlinx.serialization.json.Json
 import net.sunaba.appengine.AppEngine
-import net.sunaba.appengine.CloudTasks
+import net.sunaba.appengine.AppEngineDeferred
 import net.sunaba.appengine.HelloDeferred
+import net.sunaba.appengine.deferred
 import java.io.PrintWriter
 import java.io.StringWriter
 
 fun Application.module() {
+
+    if (AppEngine.isLocalEnv) {
+
+    }
+
     install(ContentNegotiation) {
         serialization(contentType = ContentType.Application.Json
                 , json = Json(DefaultJsonConfiguration.copy(prettyPrint = true)))
     }
-    install(CloudTasks)
+    install(AppEngineDeferred) {
+        idTokenVerification = true
+    }
+
     //ローカルで実行時はfrontendからのCORSを有効化する
     if (AppEngine.isLocalEnv) install(CORS) { host("localhost:8080") }
     install(StatusPages) {
@@ -73,7 +82,7 @@ fun Application.module() {
         }
 
         get("/tasks/add") {
-            call.respond(CloudTasks.addTask(HelloDeferred("Java World")).name)
+            deferred(HelloDeferred("Java World"))
         }
     }
 }
