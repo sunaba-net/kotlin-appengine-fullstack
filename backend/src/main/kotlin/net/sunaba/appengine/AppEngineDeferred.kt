@@ -25,8 +25,10 @@ private fun getMetaData(path: String, defaultValue: String): String {
     conn.setRequestProperty("Metadata-Flavor", "Google")
     return try {
         conn.inputStream.use {
-            it.reader(Charsets.UTF_8).readText().trim()
-        }.let { it.split("/").last().let { it.substring(0, it.lastIndexOf('-')) } }
+            it.reader(Charsets.UTF_8).readText().trim().let {
+                it.split("/").last().let { it.substring(0, it.lastIndexOf('-')) }
+            }
+        }
     } catch (ex: UnknownHostException) {
         defaultValue
     }
