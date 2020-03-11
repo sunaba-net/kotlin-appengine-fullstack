@@ -26,16 +26,15 @@ import java.io.StringWriter
 
 fun Application.module() {
 
-    if (AppEngine.isLocalEnv) {
-
-    }
-
     install(ContentNegotiation) {
         serialization(contentType = ContentType.Application.Json
                 , json = Json(DefaultJsonConfiguration.copy(prettyPrint = true)))
     }
     install(AppEngineDeferred) {
         idTokenVerification = true
+//        projectId = "ktor-sunaba"
+//        this.region = "asia-northeast1"
+
     }
 
     //ローカルで実行時はfrontendからのCORSを有効化する
@@ -82,7 +81,7 @@ fun Application.module() {
         }
 
         get("/tasks/add") {
-            deferred(HelloDeferred("Java World"))
+            deferred(HelloDeferred("Kotlin World"))
         }
     }
 }

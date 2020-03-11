@@ -19,6 +19,19 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.UnknownHostException
 
+private fun getMetaData(path: String, defaultValue: String): String {
+    val conn = URL("http://metadata.google.internal${path}").openConnection() as HttpURLConnection
+    conn.requestMethod = "POST"
+    conn.setRequestProperty("Metadata-Flavor", "Google")
+    return try {
+        conn.inputStream.use {
+            it.reader(Charsets.UTF_8).readText().trim()
+        }.let { it.split("/").last().let { it.substring(0, it.lastIndexOf('-')) } }
+    } catch (ex: UnknownHostException) {
+        defaultValue
+    }
+}
+
 class AppEngineDeferred(internal val config: Configuration) {
 
     /**
@@ -35,31 +48,19 @@ class AppEngineDeferred(internal val config: Configuration) {
             const val CURRENT_REGION_LATER: String = "__CURRENT_REGION_LATER__"
         }
 
-        internal val currentRegion: String by lazy {
-            val conn = URL("http://metadata.google.internal/computeMetadata/v1/instance/zone").openConnection() as HttpURLConnection
-            conn.requestMethod = "POST"
-            conn.setRequestProperty("Metadata-Flavor", "Google")
-            try {
-                conn.inputStream.use {
-                    it.reader(Charsets.UTF_8).readText()
-                }.let { it.split("/").last().let { it.substring(0, it.lastIndexOf('-')) } }
-            } catch (ex: UnknownHostException) {
-                ""
-            }
-        }
+        private val currentRegion: String by lazy { getMetaData("/computeMetadata/v1/instance/zone", "") }
 
-        internal var _region: String = CURRENT_REGION_LATER
+        private var _region: String = CURRENT_REGION_LATER
+
         var region: String
             get() = if (_region == CURRENT_REGION_LATER) currentRegion else _region
             set(value) {
                 _region = value
             }
-
     }
 
     companion object Feature : ApplicationFeature<Application, Configuration, AppEngineDeferred> {
-        override val key: AttributeKey<AppEngineDeferred>
-            get() = AttributeKey("AppEngine Deferred")
+        override val key = AttributeKey<AppEngineDeferred>("AppEngine Deferred")
 
         override fun install(pipeline: Application, configure: Configuration.() -> Unit): AppEngineDeferred {
             val configuration = Configuration().apply(configure)
@@ -71,7 +72,7 @@ class AppEngineDeferred(internal val config: Configuration) {
                             it.readObject()
                         }
                     } as DeferredTask
-                    deferredTask.run()
+                    deferredTask.run(call)
                     call.respond(HttpStatusCode.OK)
                 }
             }
