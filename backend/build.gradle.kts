@@ -7,7 +7,7 @@ repositories {
     mavenCentral()
 }
 
-val ktorVersion = "1.3.0"
+val ktorVersion = "1.3.1"
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
@@ -19,7 +19,10 @@ dependencies {
     implementation(ktor("serialization"))
 
     implementation("com.google.cloud:google-cloud-tasks:1.28.2")
-
+    implementation("com.google.cloud:google-cloud-storage:1.105.0") {
+        exclude("androidx.annotation")
+    }
+    implementation("com.google.apis:google-api-services-appengine:v1-rev20200215-1.30.9")
 }
 
 tasks {
@@ -56,5 +59,46 @@ tasks.appengineStage {
         File(stagingExtension.stagingDirectory, "app.yaml").let {f->
             f.writeText(f.readText().replace("{{mainClassName}}", application.mainClassName))
         }
+        File(stagingExtension.stagingDirectory, "DockerFile").let {f->
+            if (f.exists()) {
+                f.writeText(f.readText().replace("{{mainClassName}}", application.mainClassName))
+            }
+        }
     }
+}
+
+val appengineDir = File(projectDir, "src/main/appengine")
+tasks.create("switchStandard") {
+    group = "deploy"
+    doLast {
+        copy {
+            from(appengineDir) {
+                include("app_standard.yaml")
+                rename { "app.yaml" }
+            }
+            into(appengineDir)
+        }
+    }
+}
+tasks.create("switchFlex") {
+    group = "deploy"
+    doLast {
+        copy {
+            from(appengineDir) {
+                include("app_flex.yaml")
+                rename { "app.yaml" }
+            }
+            into(appengineDir)
+        }
+    }
+}
+
+tasks.create("appengineDeployStandard") {
+    group = "deploy"
+    dependsOn("switchStandard", "appengineDeploy")
+}
+
+tasks.create("appengineDeployFlex") {
+    group = "deploy"
+    dependsOn("switchFlex", "appengineDeploy")
 }

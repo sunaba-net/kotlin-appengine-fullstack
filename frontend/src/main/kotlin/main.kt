@@ -1,6 +1,9 @@
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
 import vue.Vue
 import vue.VueComponent
 import vue.VueData
+import kotlin.js.Promise
 
 open class ButtonCounter : VueComponent<ButtonCounter.CountModel>({
     template = """

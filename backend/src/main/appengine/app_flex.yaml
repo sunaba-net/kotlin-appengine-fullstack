@@ -1,0 +1,4 @@
+# see https://cloud.google.com/appengine/docs/standard/java11/config/appref?hl=ja
+runtime: custom
+env: flex
+service: chat
