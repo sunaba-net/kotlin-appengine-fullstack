@@ -17,6 +17,7 @@ dependencies {
     implementation(ktor("server-netty"))
     implementation(ktor("client-cio"))
     implementation(ktor("serialization"))
+    implementation(ktor("websockets"))
 
     implementation("com.google.cloud:google-cloud-tasks:1.28.2")
     implementation("com.google.cloud:google-cloud-storage:1.105.0") {
@@ -95,10 +96,12 @@ tasks.create("switchFlex") {
 
 tasks.create("appengineDeployStandard") {
     group = "deploy"
-    dependsOn("switchStandard", "appengineDeploy")
+    dependsOn("switchStandard", "appengineStage")
+    tasks["appengineStage"].mustRunAfter("switchStandard")
 }
 
 tasks.create("appengineDeployFlex") {
     group = "deploy"
-    dependsOn("switchFlex", "appengineDeploy")
+    dependsOn("switchFlex", "appengineStage")
+    tasks["appengineStage"].mustRunAfter("switchFlex")
 }
