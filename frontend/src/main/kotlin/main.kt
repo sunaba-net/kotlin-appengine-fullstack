@@ -1,3 +1,7 @@
+import com.soywiz.korio.net.http.HttpClient
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonConfiguration
+import model.User
 import vue.Vue
 import vue.VueComponent
 import vue.VueData
@@ -30,7 +34,6 @@ class ReverseButton : VueComponent<VueData<String>>(
 
 class ButtonCounter2 : ButtonCounter() {
     init {
-
     }
 
     override fun onClick() {
@@ -39,10 +42,18 @@ class ButtonCounter2 : ButtonCounter() {
 }
 
 suspend fun main() {
+
+    val client = HttpClient()
+    val json = Json(JsonConfiguration.Stable)
+    val user1 = json.parse(User.serializer(), client.readString("http://localhost:8081/json/user"))
+    println(user1)
+
     VueComponent("button-counter", ButtonCounter())
     VueComponent("button-counter2", ButtonCounter2())
     VueComponent("reverse-button", ReverseButton())
     Vue(object {
         val el = "#components-demo"
     })
+
+
 }

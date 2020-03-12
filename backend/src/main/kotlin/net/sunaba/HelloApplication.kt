@@ -28,6 +28,8 @@ import io.ktor.serialization.serialization
 import io.ktor.websocket.WebSockets
 import io.ktor.websocket.webSocket
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonConfiguration
+import model.User
 import net.sunaba.appengine.AppEngine
 import net.sunaba.appengine.AppEngineDeferred
 import net.sunaba.appengine.HelloDeferred
@@ -37,10 +39,10 @@ import java.io.StringWriter
 
 fun Application.module() {
 
-    install(ContentNegotiation) {
-        serialization(contentType = ContentType.Application.Json
-                , json = Json(DefaultJsonConfiguration.copy(prettyPrint = true)))
-    }
+//    install(ContentNegotiation) {
+//        serialization(contentType = ContentType.Application.Json
+//                , json = Json(JsonConfiguration.Stable))
+//    }
     install(AppEngineDeferred) {
         idTokenVerification = true
 //        projectId = "ktor-sunaba"
@@ -121,7 +123,12 @@ fun Application.module() {
         }
 
         get("/tasks/add") {
-            deferred(HelloDeferred("Kotlin World"))
+            call.respondText(deferred(HelloDeferred("Kotlin World")).name)
+        }
+
+        get("/json/user") {
+            val json = Json(JsonConfiguration.Stable)
+            call.respondText(json.stringify(User.serializer(), User(1, "Taro")))
         }
     }
 }

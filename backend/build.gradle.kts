@@ -24,6 +24,10 @@ dependencies {
         exclude("androidx.annotation")
     }
     implementation("com.google.apis:google-api-services-appengine:v1-rev20200215-1.30.9")
+
+    implementation(project(":model"))
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.20.0")
 }
 
 tasks {

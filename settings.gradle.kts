@@ -16,3 +16,4 @@ pluginManagement {
     }
 }
 include("frontend")
+include("model")

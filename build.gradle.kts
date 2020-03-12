@@ -10,6 +10,8 @@ plugins {
 
     kotlin("js") version kotlinVersion apply false
     kotlin("plugin.serialization") version kotlinVersion apply false
+
+    kotlin("multiplatform") version kotlinVersion apply false
 }
 
 subprojects {
@@ -19,12 +21,15 @@ subprojects {
             plugin(kotlin("jvm"))
             plugin("com.google.cloud.tools.appengine")
             plugin("org.gradle.application")
+            plugin(kotlin("plugin.serialization"))
         }
         "frontend" -> apply {
             plugin(kotlin("js"))
             plugin(kotlin("plugin.serialization"))
         }
+        "model"->apply {
+            plugin(kotlin("multiplatform"))
+            plugin(kotlin("plugin.serialization"))
+        }
     }
-
-
 }

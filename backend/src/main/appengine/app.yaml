@@ -1,4 +1,9 @@
-# see https://cloud.google.com/appengine/docs/standard/java11/config/appref?hl=ja
-runtime: java11
-instance_class: F1
-entrypoint: 'java -cp "./*:./libs/*" {{mainClassName}}' #mainClassNameはgradle appengineStageで置き換えられる
+#https://cloud.google.com/appengine/docs/flexible/custom-runtimes/configuring-your-app-with-app-yaml
+runtime: custom
+env: flex
+service: chat
+resources:
+  cpu: 1
+  memory_gb: 0.6
+manual_scaling:
+  instances: 1
