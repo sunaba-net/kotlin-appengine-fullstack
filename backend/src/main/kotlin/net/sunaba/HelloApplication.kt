@@ -51,10 +51,10 @@ fun Application.module() {
     install(WebSockets)
 
     //ローカルで実行時はfrontendからのCORSを有効化する
-//    if (AppEngine.isLocalEnv) 
-    install(CORS) {
-        host("*")
-        allowCredentials = true
+    if (AppEngine.isLocalEnv) {
+        install(CORS) {
+            host("*")
+        }
     }
 
     install(StatusPages) {

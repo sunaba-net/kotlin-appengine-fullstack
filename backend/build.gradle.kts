@@ -96,12 +96,12 @@ tasks.create("switchFlex") {
 
 tasks.create("appengineDeployStandard") {
     group = "deploy"
-    dependsOn("switchStandard", "appengineStage")
+    dependsOn("switchStandard", "appengineDeploy")
     tasks["appengineStage"].mustRunAfter("switchStandard")
 }
 
 tasks.create("appengineDeployFlex") {
     group = "deploy"
-    dependsOn("switchFlex", "appengineStage")
+    dependsOn("switchFlex", "appengineDeploy")
     tasks["appengineStage"].mustRunAfter("switchFlex")
 }
