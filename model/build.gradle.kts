@@ -52,10 +52,6 @@ kotlin {
 
 kapt {
     arguments {
-        arg("hoge", "hogehoge")
-    }
-
-    javacOptions {
-        option("hoge", "b")
+        arg("serializers.module", "models.foo.module")
     }
 }
