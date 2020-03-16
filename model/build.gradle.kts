@@ -27,8 +27,7 @@ kotlin {
             }
         }
         //kaptで追加されたソースをソースパスに追加
-//        this["commonMain"]
-//                .kotlin.srcDir("$projectDir/build/generated/source/kapt/main")
+        this["commonMain"].kotlin.srcDir("$projectDir/build/generated/source/kaptKotlin/main")
 
         val commonTest by getting {
             dependencies {
@@ -55,6 +54,6 @@ kotlin {
 
 kapt {
     arguments {
-        arg("serializers.output", "$projectDir/src/commonMain")
+        //arg("serializers.output", "$projectDir/src/commonMain/kotlin")
     }
 }

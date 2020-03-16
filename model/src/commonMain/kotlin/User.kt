@@ -1,8 +1,9 @@
 package model
 
+import automodule.AutoModule
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.modules.SerializersModule
+
 
 interface Message
 
@@ -31,21 +32,6 @@ data class Messages(val messages:List<Message> = listOf(IntMessage(1, intArrayOf
 @Serializable
 open class Foo(val item:Int)
 
-@Serializable
-class Bar(val item2:Int):Foo(item2)
 
-val module = SerializersModule {
-    polymorphic(model.Foo::class) {
-        addSubclass(model.Bar::class, model.Bar.serializer())
-    }
-    polymorphic(model.Message::class) {
-        addSubclass(model.StringMessage::class, model.StringMessage.serializer())
-        addSubclass(model.IntMessage::class, model.IntMessage.serializer())
-    }
-    polymorphic(model.IIntMessage::class) {
-        addSubclass(model.IntMessage::class, model.IntMessage.serializer())
-    }
-}
 
-@Serializable
-class Hoge2 {}
+val hoge = AutoModule

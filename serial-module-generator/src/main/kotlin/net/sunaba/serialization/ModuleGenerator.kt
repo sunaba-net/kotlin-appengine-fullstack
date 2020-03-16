@@ -1,17 +1,15 @@
 package net.sunaba.serialization
 
-import com.squareup.kotlinpoet.FileSpec
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.io.File
-import java.util.*
+import java.io.PrintWriter
 import javax.annotation.processing.*
 import javax.lang.model.element.*
 import javax.lang.model.type.*
-import javax.tools.StandardLocation
+import javax.tools.Diagnostic
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
-import kotlin.math.min
 
 
 @SupportedOptions("module.gen.output")
@@ -25,22 +23,15 @@ class ModuleGenerator : AbstractProcessor() {
     }
 
     override fun process(annotations: MutableSet<out TypeElement>, roundEnv: RoundEnvironment): Boolean {
+        val kaptKotlinGeneratedDir = processingEnv.options[KAPT_KOTLIN_GENERATED_OPTION_NAME] ?: run {
+            processingEnv.messager.printMessage(Diagnostic.Kind.ERROR, "Can't find the target directory for generated Kotlin files.")
+            return false
+        }
+
+        println(kaptKotlinGeneratedDir)
+
         if (roundEnv.processingOver()) {
-
-            polyMap.forEach {
-                println("    polymorphic(${it.key}::class) {")
-                println(it.value.map { "addSubclass(${it}::class, ${it}.serializer())" }
-                        .joinToString("\n        ", prefix = "        "))
-                println("    }")
-            }
-
-            println(processingEnv.options)
-
-            processingEnv.options.get("serializers.output")?.let { File(it, "Dummy.kt").writer(Charsets.UTF_8) }
-                    ?: processingEnv.filer.createResource(StandardLocation.SOURCE_OUTPUT, "dummy", "Dummy.kt").openWriter().use {
-                        it.write("Hello")
-                    }
-
+            generateAutoModule(kaptKotlinGeneratedDir)
         } else {
         }
 
@@ -48,6 +39,25 @@ class ModuleGenerator : AbstractProcessor() {
             process(it as TypeElement)
         }
         return false
+    }
+
+    fun generateAutoModule(outputDir: String) {
+        val outputDir = processingEnv.options.get("serializers.output") ?: outputDir
+
+        File(outputDir, "AutoModule.kt").writer(Charsets.UTF_8).use {
+            PrintWriter(it).use { w ->
+                w.println("package automodule")
+                w.println("import kotlinx.serialization.modules.SerializersModule")
+                w.println("val AutoModule = SerializersModule{")
+                polyMap.forEach {
+                    w.println("    polymorphic(${it.key}::class) {")
+                    w.println(it.value.map { "addSubclass(${it}::class, ${it}.serializer())" }
+                            .joinToString("\n        ", prefix = "        "))
+                    w.println("    }")
+                }
+                w.println("}")
+            }
+        }
     }
 
     private val serialClassRespository: HashMap<TypeElement, SerialClass> = hashMapOf()
@@ -160,13 +170,13 @@ class ModuleGenerator : AbstractProcessor() {
             TypeKind.FLOAT -> "float"
             TypeKind.DOUBLE -> "double"
             TypeKind.VOID -> "void"
-            TypeKind.ARRAY -> (this as ArrayType).csType
+            TypeKind.ARRAY -> (this as ArrayType).csTypeName
             TypeKind.DECLARED -> (this as DeclaredType).csType
             else -> {
                 "unknown " + this.toString()
             }
         }
-    val ArrayType.csType: String
+    val ArrayType.csTypeName: String
         get() = this.componentType.csType + "[]"
 
     val DeclaredType.csType: String
@@ -185,5 +195,9 @@ class ModuleGenerator : AbstractProcessor() {
 
     val TypeElement.isJavaLangObject
         get() = kind == ElementKind.CLASS && superclass is NoType
+
+    companion object {
+        const val KAPT_KOTLIN_GENERATED_OPTION_NAME = "kapt.kotlin.generated"
+    }
 
 }
