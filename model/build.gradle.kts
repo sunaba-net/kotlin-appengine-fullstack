@@ -17,7 +17,6 @@ kotlin {
     sourceSets {
 
         val serialization_version = "0.20.0"
-
         val commonMain by getting {
             dependencies {
                 implementation(kotlin("stdlib-common"))
@@ -27,6 +26,10 @@ kotlin {
                 configurations.get("kapt").dependencies.add(project(":serial-module-generator"))
             }
         }
+        //kaptで追加されたソースをソースパスに追加
+//        this["commonMain"]
+//                .kotlin.srcDir("$projectDir/build/generated/source/kapt/main")
+
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test-common"))
@@ -52,6 +55,6 @@ kotlin {
 
 kapt {
     arguments {
-        arg("serializers.module", "models.foo.module")
+        arg("serializers.output", "$projectDir/src/commonMain")
     }
 }

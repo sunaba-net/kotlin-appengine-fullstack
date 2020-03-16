@@ -11,7 +11,9 @@ interface IIntMessage:Message {
 }
 
 @Serializable
-data class IntMessage(override val intValue:Int, val intValues:IntArray):IIntMessage
+data class IntMessage(override val intValue:Int, val intValues:IntArray):IIntMessage {
+
+}
 
 @Serializable
 data class StringMessage(val stringValue:String):Message
@@ -23,10 +25,19 @@ data class User(val id:Int=123, @SerialName("myname") val name:String="name") {
 }
 
 @Serializable
+@SerialName("hoge")
 data class Messages(val messages:List<Message> = listOf(IntMessage(1, intArrayOf(1,23)), StringMessage("Hello")))
 
+@Serializable
+open class Foo(val item:Int)
 
-val AutoSerialModule = SerializersModule {
+@Serializable
+class Bar(val item2:Int):Foo(item2)
+
+val module = SerializersModule {
+    polymorphic(model.Foo::class) {
+        addSubclass(model.Bar::class, model.Bar.serializer())
+    }
     polymorphic(model.Message::class) {
         addSubclass(model.StringMessage::class, model.StringMessage.serializer())
         addSubclass(model.IntMessage::class, model.IntMessage.serializer())
@@ -35,3 +46,6 @@ val AutoSerialModule = SerializersModule {
         addSubclass(model.IntMessage::class, model.IntMessage.serializer())
     }
 }
+
+@Serializable
+class Hoge2 {}

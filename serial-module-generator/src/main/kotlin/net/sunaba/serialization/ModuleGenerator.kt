@@ -1,16 +1,24 @@
 package net.sunaba.serialization
 
+import com.squareup.kotlinpoet.FileSpec
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import java.io.File
+import java.util.*
 import javax.annotation.processing.*
 import javax.lang.model.element.*
 import javax.lang.model.type.*
+import javax.tools.StandardLocation
+import kotlin.collections.HashMap
+import kotlin.collections.HashSet
+import kotlin.math.min
+
 
 @SupportedOptions("module.gen.output")
 @com.google.auto.service.AutoService(Processor::class)
 class ModuleGenerator : AbstractProcessor() {
 
-    val moduleMap = hashMapOf<String, HashSet<String>>()
+    val polyMap = hashMapOf<String, HashSet<String>>()
 
     override fun getCompletions(element: Element?, annotation: AnnotationMirror?, member: ExecutableElement?, userText: String?): MutableIterable<Completion> {
         return super.getCompletions(element, annotation, member, userText)
@@ -18,96 +26,128 @@ class ModuleGenerator : AbstractProcessor() {
 
     override fun process(annotations: MutableSet<out TypeElement>, roundEnv: RoundEnvironment): Boolean {
         if (roundEnv.processingOver()) {
-            println("===========processingOver")
 
-            println("val module = SerializersModule {")
-            moduleMap.forEach {
+            polyMap.forEach {
                 println("    polymorphic(${it.key}::class) {")
                 println(it.value.map { "addSubclass(${it}::class, ${it}.serializer())" }
                         .joinToString("\n        ", prefix = "        "))
                 println("    }")
             }
-            println("}")
-            println(moduleMap)
+
+            println(processingEnv.options)
+
+            processingEnv.options.get("serializers.output")?.let { File(it, "Dummy.kt").writer(Charsets.UTF_8) }
+                    ?: processingEnv.filer.createResource(StandardLocation.SOURCE_OUTPUT, "dummy", "Dummy.kt").openWriter().use {
+                        it.write("Hello")
+                    }
+
         } else {
-            println("===========processingNotOver")
         }
 
         roundEnv.getElementsAnnotatedWith(Serializable::class.java).forEach {
             process(it as TypeElement)
         }
-        println(processingEnv.options.entries)
-
         return false
     }
 
-    val processed = hashSetOf<TypeElement>()
+    private val serialClassRespository: HashMap<TypeElement, SerialClass> = hashMapOf()
 
-    fun process(typeElement: TypeElement) {
+    inner class SerialProperty(element: VariableElement, val serialName: String) {
+        val name: String = element.simpleName!!.toString()
+    }
 
-        val isKindClass = (typeElement.kind == ElementKind.CLASS)
-        val isKindInterface = (typeElement.kind == ElementKind.INTERFACE)
+    inner class SerialClass(element: TypeElement) {
+        private val isClass: Boolean = element.kind == ElementKind.CLASS
+        private val isInterface: Boolean = element.kind == ElementKind.INTERFACE
 
-        if (isKindClass && typeElement.superclass is NoType) {
-            //java.lang.Object
-            return;
+        /**
+         * SerialNameアノテーションが付いているプロパティのプロパティ名とシリアル名のmap
+         */
+        private val serialPropertyNameMap: Map<String, String> by lazy {
+            val serialAnnotationSuffix = "\$annotations";
+            element.enclosedElements
+                    .map { it to it.getAnnotation(SerialName::class.java) }
+                    .filter { it.first.simpleName.endsWith(serialAnnotationSuffix) && it.second != null }
+                    .map { it.first.simpleName.substring(0, it.first.simpleName.length - serialAnnotationSuffix.length) to it.second.value }
+                    .toMap()
         }
-        if (processed.contains(typeElement)) {
-            return
-        }
-        processed.add(typeElement)
 
-        if (typeElement.getAnnotation(Serializable::class.java) != null) {
-            typeElement.baseElements.forEach {
-                moduleMap.getOrPut(it.toString() ,{ hashSetOf()}).add(typeElement.toString())
+        val qualifiedName: String = element.qualifiedName!!.toString()
+        val serialName: String by lazy {
+            element.getAnnotation(SerialName::class.java)?.value ?: qualifiedName
+        }
+
+        val hasSerializer: Boolean by lazy {
+            element.getAnnotation(Serializable::class.java) != null
+        }
+
+        val properties: List<SerialProperty> by lazy {
+            element.enclosedElements
+                    .filter { it is VariableElement }
+                    .filter { !"Companion".equals(it.simpleName.toString()) }
+                    .map {
+                        SerialProperty(it as VariableElement, serialPropertyNameMap
+                                .getOrDefault(it.simpleName.toString(), it.simpleName.toString()))
+                    }
+        }
+
+        val declaredProperties: List<SerialProperty> by lazy {
+            if (isInterface) {
+                interfaces.flatMap { it.properties.map { it.name } }.let { names ->
+                    properties.filter { !names.contains(it.name) }
+                }
+            } else {
+                if (superclass == null) {
+                    properties
+                } else {
+                    superclass!!.properties.map { it.name }.let { names ->
+                        properties.filter { !names.contains(it.name) }
+                    }
+                }
             }
         }
 
-
-
-        typeElement.interfaces.forEach { process(processingEnv.typeUtils.asElement(it) as TypeElement) }
-
-        val superClassProperties = if (isKindClass) {
-            process(processingEnv.typeUtils.asElement(typeElement.superclass) as TypeElement)
-            processingEnv.typeUtils.asElement(typeElement.superclass).enclosedElements
-        } else {
-            typeElement.interfaces.flatMap { processingEnv.typeUtils.asElement(it).enclosedElements }
-        }.filter { it is VariableElement }
-                .map { it.simpleName }
-
-        val serialNames = typeElement.enclosedElements.filter { it.getAnnotation(SerialName::class.java) != null }
-        //println(serialName.map { it.asType() })
-
-
-        println(typeElement.qualifiedName.toString() + ":" + typeElement.interfaces)
-        println(typeElement.baseElements)
-        typeElement.enclosedElements.stream()
-                .filter { it is VariableElement }
-                .filter { !superClassProperties.contains(it.simpleName) }
-                .filter { !"Companion".equals(it.simpleName.toString()) }
-                .map { it as VariableElement }
-                .forEach {
-                    val serialName = it.getAnnotation(SerialName::class.java)
-                    if (serialName != null) {
-                        println(serialName)
-                    }
-                    println("    ${it.asType()} ${it.simpleName} = ${it.constantValue} (${it.asType().csType})")
+        val superclass: SerialClass? by lazy {
+            if (isInterface) {
+                null
+            } else {
+                element.superclass.let {
+                    if (it.isJavaLangObject) null else process(processingEnv.typeUtils.asElement(it) as TypeElement)
                 }
+            }
+        }
 
-        println()
-//            println(typeElement.interfaces)
-//
-//            if (typeElement.superclass is NoType) {
-//                println("noType")
-//            }
-//            println(typeElement.superclass)
+        val interfaces: List<SerialClass> by lazy {
+            element.interfaces.map { process(processingEnv.typeUtils.asElement(it) as TypeElement) }
+        }
+
+        val allSuperClassInterfaces: Set<SerialClass> by lazy {
+            hashSetOf<SerialClass>().apply {
+                superclass?.let {
+                    add(it)
+                    addAll(it.allSuperClassInterfaces)
+                }
+                addAll(interfaces)
+                interfaces.forEach {
+                    addAll(it.allSuperClassInterfaces)
+                }
+            }
+        }
     }
 
+    fun process(typeElement: TypeElement): SerialClass = serialClassRespository.getOrPut(typeElement) {
+        return SerialClass(typeElement).also {
+            if (it.hasSerializer) {
+                it.allSuperClassInterfaces.forEach { base ->
+                    polyMap.getOrPut(base.qualifiedName, { hashSetOf() }).add(it.qualifiedName)
+                }
+            }
+        }
+    }
 
     override fun getSupportedAnnotationTypes(): MutableSet<String> {
         return mutableSetOf(Serializable::class.java.name)
     }
-
 
     val TypeMirror.csType: String
         get() = when (this.kind) {
@@ -120,7 +160,6 @@ class ModuleGenerator : AbstractProcessor() {
             TypeKind.FLOAT -> "float"
             TypeKind.DOUBLE -> "double"
             TypeKind.VOID -> "void"
-            TypeKind.INT -> "int"
             TypeKind.ARRAY -> (this as ArrayType).csType
             TypeKind.DECLARED -> (this as DeclaredType).csType
             else -> {
@@ -136,38 +175,15 @@ class ModuleGenerator : AbstractProcessor() {
             return when (element.qualifiedName.toString()) {
                 java.lang.String::class.java.name -> "string"
                 java.util.List::class.java.name -> "List<" + this.typeArguments.joinToString { it.csType } + ">"
+                java.util.Map::class.java.name -> "Map<" + this.typeArguments.joinToString { it.csType } + ">"
                 else -> this.toString()
             }
         }
-
-    val baseElementCache = hashMapOf<TypeElement, Set<TypeElement>>()
-
-    /**
-     *
-     */
-    val TypeElement.baseElements: Set<TypeElement>
-        get() = baseElementCache.getOrPut(this) {
-            val hashSet = hashSetOf<TypeElement>()
-            if (superclass.kind != TypeKind.NONE && !superclass.isJavaLangObject) {
-                val s = processingEnv.typeUtils.asElement(superclass) as TypeElement
-                hashSet.add(s)
-                hashSet.addAll(s.baseElements)
-            }
-            interfaces.forEach {
-                if (!(it is  NoType)) {
-                    val i = processingEnv.typeUtils.asElement(it) as TypeElement
-                    hashSet.add(i)
-                    hashSet.addAll(i.baseElements)
-                }
-
-            }
-            return hashSet
-        }
-
 
     val TypeMirror.isJavaLangObject
         get() = this is DeclaredType && (this.asElement() as TypeElement).isJavaLangObject
 
     val TypeElement.isJavaLangObject
         get() = kind == ElementKind.CLASS && superclass is NoType
+
 }
