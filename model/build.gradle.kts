@@ -1,17 +1,16 @@
+import org.jetbrains.kotlin.kapt3.base.Kapt
 
-group = "net.sunaba"
-version = "1.0-SNAPSHOT"
-
-repositories {
-    mavenCentral()
+plugins {
+    kotlin("kapt")
 }
+
 
 kotlin {
     jvm()
     js {
         browser
     }
-    /* Targets configuration omitted. 
+    /* Targets configuration omitted.
     *  To find out how to configure the targets, please follow the link:
     *  https://kotlinlang.org/docs/reference/building-mpp-with-gradle.html#setting-up-targets */
 
@@ -23,6 +22,9 @@ kotlin {
             dependencies {
                 implementation(kotlin("stdlib-common"))
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime-common:$serialization_version")
+
+                // https://stackoverflow.com/questions/59321848/using-kapt-with-multiplatform-subproject
+                configurations.get("kapt").dependencies.add(project(":serial-module-generator"))
             }
         }
         val commonTest by getting {
@@ -46,6 +48,14 @@ kotlin {
             }
         }
     }
+}
 
+kapt {
+    arguments {
+        arg("hoge", "hogehoge")
+    }
 
+    javacOptions {
+        option("hoge", "b")
+    }
 }

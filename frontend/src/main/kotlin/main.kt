@@ -1,10 +1,12 @@
-import com.soywiz.korio.net.http.HttpClient
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
+
+import com.soywiz.korio.async.async
+import kotlinx.coroutines.Dispatchers
+import kotlinx.serialization.PolymorphicSerializer
 import model.User
 import vue.Vue
 import vue.VueComponent
 import vue.VueData
+import websocket.AutoWebSocketClient
 
 open class ButtonCounter : VueComponent<ButtonCounter.CountModel>({
     template = """
@@ -38,15 +40,33 @@ class ButtonCounter2 : ButtonCounter() {
 
     override fun onClick() {
         data.count += 100
+
+        async(Dispatchers.Default) {
+            webSocketClient.send("Hello")
+        }
+
     }
 }
 
-suspend fun main() {
+lateinit var webSocketClient: AutoWebSocketClient
 
-    val client = HttpClient()
-    val json = Json(JsonConfiguration.Stable)
-    val user1 = json.parse(User.serializer(), client.readString("http://localhost:8081/json/user"))
-    println(user1)
+
+suspend fun main() {
+    webSocketClient = AutoWebSocketClient("ws://localhost:8081/chat", DEBUG = true).apply { connect() }
+//    webSocketClient.onStringMessage {
+//        PolymorphicSerializer<User>(User::class)
+//    }
+//    webSocketClient.onError.add {
+//        println(it)
+//    }
+//    webSocketClient.onClose.add {
+//        println("onClose")
+//    }
+//    val client = HttpClient()
+//    val json = Json(JsonConfiguration.Stable)
+//    val user1 = json.parse(User.serializer(), client.readString("/json/user"))
+//    println(user1)
+
 
     VueComponent("button-counter", ButtonCounter())
     VueComponent("button-counter2", ButtonCounter2())

@@ -6,12 +6,13 @@ plugins {
 
     kotlin("jvm") version kotlinVersion apply false
     id("com.google.cloud.tools.appengine") version "2.2.0" apply false
-    application
 
     kotlin("js") version kotlinVersion apply false
     kotlin("plugin.serialization") version kotlinVersion apply false
 
     kotlin("multiplatform") version kotlinVersion apply false
+
+    kotlin("kapt") version kotlinVersion apply false
 }
 
 subprojects {
@@ -31,5 +32,20 @@ subprojects {
             plugin(kotlin("multiplatform"))
             plugin(kotlin("plugin.serialization"))
         }
+        "serial-module-generator" -> apply {
+            plugin(kotlin("jvm"))
+        }
+    }
+}
+
+allprojects {
+    version = "1.0.0-SNAPSHOT"
+    group = "net.sunaba"
+    group = "org.example"
+    version = "1.0-SNAPSHOT"
+
+    repositories {
+        jcenter()
+        mavenCentral()
     }
 }

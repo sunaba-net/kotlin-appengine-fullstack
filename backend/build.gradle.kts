@@ -1,13 +1,8 @@
-group = "org.example"
-version = "1.0-SNAPSHOT"
-
-
-
-repositories {
-    mavenCentral()
+plugins {
+    application
 }
 
-val ktorVersion = "1.3.1"
+val ktorVersion = "1.3.2"
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
@@ -23,11 +18,8 @@ dependencies {
     implementation("com.google.cloud:google-cloud-storage:1.105.0") {
         exclude("androidx.annotation")
     }
-    implementation("com.google.apis:google-api-services-appengine:v1-rev20200215-1.30.9")
-
     implementation(project(":model"))
-
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.20.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-cbor:0.20.0")
 }
 
 tasks {
@@ -85,6 +77,7 @@ tasks.create("switchStandard") {
         }
     }
 }
+
 tasks.create("switchFlex") {
     group = "deploy"
     doLast {
