@@ -1,6 +1,5 @@
 package model
 
-import automodule.AutoModule
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -33,5 +32,3 @@ data class Messages(val messages:List<Message> = listOf(IntMessage(1, intArrayOf
 open class Foo(val item:Int)
 
 
-
-val hoge = AutoModule

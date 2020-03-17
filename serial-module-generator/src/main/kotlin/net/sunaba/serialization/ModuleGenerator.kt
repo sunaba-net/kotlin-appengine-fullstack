@@ -5,18 +5,22 @@ import kotlinx.serialization.Serializable
 import java.io.File
 import java.io.PrintWriter
 import javax.annotation.processing.*
+import javax.lang.model.SourceVersion
 import javax.lang.model.element.*
 import javax.lang.model.type.*
 import javax.tools.Diagnostic
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 
-
+@SupportedSourceVersion(SourceVersion.RELEASE_8)
 @SupportedOptions("module.gen.output")
 @com.google.auto.service.AutoService(Processor::class)
 class ModuleGenerator : AbstractProcessor() {
 
-    val polyMap = hashMapOf<String, HashSet<String>>()
+    private val polyMap = hashMapOf<String, HashSet<String>>()
+
+    private val serialClassImplRespository: HashMap<TypeElement, SerialClass> = hashMapOf()
+
 
     override fun getCompletions(element: Element?, annotation: AnnotationMirror?, member: ExecutableElement?, userText: String?): MutableIterable<Completion> {
         return super.getCompletions(element, annotation, member, userText)
@@ -27,24 +31,26 @@ class ModuleGenerator : AbstractProcessor() {
             processingEnv.messager.printMessage(Diagnostic.Kind.ERROR, "Can't find the target directory for generated Kotlin files.")
             return false
         }
-
-        println(kaptKotlinGeneratedDir)
-
         if (roundEnv.processingOver()) {
             generateAutoModule(kaptKotlinGeneratedDir)
+
+            serialClassImplRespository.values.forEach {
+                CsCborGenerator.generate(it)
+            }
+
         } else {
+            roundEnv.getElementsAnnotatedWith(Serializable::class.java).forEach {
+                process(it as TypeElement)
+            }
         }
 
-        roundEnv.getElementsAnnotatedWith(Serializable::class.java).forEach {
-            process(it as TypeElement)
-        }
         return false
     }
 
     fun generateAutoModule(outputDir: String) {
-        val outputDir = processingEnv.options.get("serializers.output") ?: outputDir
+        val dir = processingEnv.options.get("serializers.output") ?: outputDir
 
-        File(outputDir, "AutoModule.kt").writer(Charsets.UTF_8).use {
+        File(dir, "AutoModule.kt").writer(Charsets.UTF_8).use {
             PrintWriter(it).use { w ->
                 w.println("package automodule")
                 w.println("import kotlinx.serialization.modules.SerializersModule")
@@ -60,15 +66,15 @@ class ModuleGenerator : AbstractProcessor() {
         }
     }
 
-    private val serialClassRespository: HashMap<TypeElement, SerialClass> = hashMapOf()
 
-    inner class SerialProperty(element: VariableElement, val serialName: String) {
-        val name: String = element.simpleName!!.toString()
+    inner class SerialPropertyImpl(override val element: VariableElement, override val serialName: String) : SerialProperty {
+        override val name: String = element.simpleName!!.toString()
     }
 
-    inner class SerialClass(element: TypeElement) {
-        private val isClass: Boolean = element.kind == ElementKind.CLASS
-        private val isInterface: Boolean = element.kind == ElementKind.INTERFACE
+
+    inner class SerialClassImpl(override val element: TypeElement) : SerialClass {
+        override val isClass: Boolean = element.kind == ElementKind.CLASS
+        override val isInterface: Boolean = element.kind == ElementKind.INTERFACE
 
         /**
          * SerialNameアノテーションが付いているプロパティのプロパティ名とシリアル名のmap
@@ -82,26 +88,26 @@ class ModuleGenerator : AbstractProcessor() {
                     .toMap()
         }
 
-        val qualifiedName: String = element.qualifiedName!!.toString()
-        val serialName: String by lazy {
+        override val qualifiedName: String = element.qualifiedName!!.toString()
+        override val serialName: String by lazy {
             element.getAnnotation(SerialName::class.java)?.value ?: qualifiedName
         }
 
-        val hasSerializer: Boolean by lazy {
+        override val hasSerializer: Boolean by lazy {
             element.getAnnotation(Serializable::class.java) != null
         }
 
-        val properties: List<SerialProperty> by lazy {
+        override val properties: List<SerialProperty> by lazy {
             element.enclosedElements
                     .filter { it is VariableElement }
                     .filter { !"Companion".equals(it.simpleName.toString()) }
                     .map {
-                        SerialProperty(it as VariableElement, serialPropertyNameMap
+                        SerialPropertyImpl(it as VariableElement, serialPropertyNameMap
                                 .getOrDefault(it.simpleName.toString(), it.simpleName.toString()))
                     }
         }
 
-        val declaredProperties: List<SerialProperty> by lazy {
+        override val declaredProperties: List<SerialProperty> by lazy {
             if (isInterface) {
                 interfaces.flatMap { it.properties.map { it.name } }.let { names ->
                     properties.filter { !names.contains(it.name) }
@@ -117,7 +123,7 @@ class ModuleGenerator : AbstractProcessor() {
             }
         }
 
-        val superclass: SerialClass? by lazy {
+        override val superclass: SerialClass? by lazy {
             if (isInterface) {
                 null
             } else {
@@ -127,11 +133,11 @@ class ModuleGenerator : AbstractProcessor() {
             }
         }
 
-        val interfaces: List<SerialClass> by lazy {
+        override val interfaces: List<SerialClass> by lazy {
             element.interfaces.map { process(processingEnv.typeUtils.asElement(it) as TypeElement) }
         }
 
-        val allSuperClassInterfaces: Set<SerialClass> by lazy {
+        override val allSuperClassInterfaces: Set<SerialClass> by lazy {
             hashSetOf<SerialClass>().apply {
                 superclass?.let {
                     add(it)
@@ -145,8 +151,8 @@ class ModuleGenerator : AbstractProcessor() {
         }
     }
 
-    fun process(typeElement: TypeElement): SerialClass = serialClassRespository.getOrPut(typeElement) {
-        return SerialClass(typeElement).also {
+    fun process(typeElement: TypeElement): SerialClass = serialClassImplRespository.getOrPut(typeElement) {
+        SerialClassImpl(typeElement).also {
             if (it.hasSerializer) {
                 it.allSuperClassInterfaces.forEach { base ->
                     polyMap.getOrPut(base.qualifiedName, { hashSetOf() }).add(it.qualifiedName)
@@ -158,37 +164,6 @@ class ModuleGenerator : AbstractProcessor() {
     override fun getSupportedAnnotationTypes(): MutableSet<String> {
         return mutableSetOf(Serializable::class.java.name)
     }
-
-    val TypeMirror.csType: String
-        get() = when (this.kind) {
-            TypeKind.BOOLEAN -> "bool"
-            TypeKind.BYTE -> "byte"
-            TypeKind.SHORT -> "short"
-            TypeKind.INT -> "int"
-            TypeKind.LONG -> "long"
-            TypeKind.CHAR -> "char"
-            TypeKind.FLOAT -> "float"
-            TypeKind.DOUBLE -> "double"
-            TypeKind.VOID -> "void"
-            TypeKind.ARRAY -> (this as ArrayType).csTypeName
-            TypeKind.DECLARED -> (this as DeclaredType).csType
-            else -> {
-                "unknown " + this.toString()
-            }
-        }
-    val ArrayType.csTypeName: String
-        get() = this.componentType.csType + "[]"
-
-    val DeclaredType.csType: String
-        get() {
-            val element = this.asElement() as TypeElement
-            return when (element.qualifiedName.toString()) {
-                java.lang.String::class.java.name -> "string"
-                java.util.List::class.java.name -> "List<" + this.typeArguments.joinToString { it.csType } + ">"
-                java.util.Map::class.java.name -> "Map<" + this.typeArguments.joinToString { it.csType } + ">"
-                else -> this.toString()
-            }
-        }
 
     val TypeMirror.isJavaLangObject
         get() = this is DeclaredType && (this.asElement() as TypeElement).isJavaLangObject
