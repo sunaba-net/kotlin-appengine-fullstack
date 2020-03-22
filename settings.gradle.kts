@@ -19,3 +19,4 @@ pluginManagement {
 include("frontend")
 include("model")
 include("serial-module-generator")
+include("cs-model-generator")

@@ -35,6 +35,9 @@ subprojects {
         "serial-module-generator" -> apply {
             plugin(kotlin("jvm"))
         }
+        "cs-model-generator" -> apply {
+            plugin(kotlin("jvm"))
+        }
     }
 }
 

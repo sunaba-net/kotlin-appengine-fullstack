@@ -1,12 +1,7 @@
 package net.sunaba
 
-import com.google.api.client.http.javanet.NetHttpTransport
-import com.google.api.client.json.jackson2.JacksonFactory
-import com.google.auth.http.HttpCredentialsAdapter
-import com.google.auth.oauth2.GoogleCredentials
 import io.ktor.application.Application
 import io.ktor.application.call
-import io.ktor.application.feature
 import io.ktor.application.install
 import io.ktor.features.CORS
 import io.ktor.features.ContentNegotiation
@@ -19,31 +14,27 @@ import io.ktor.http.cio.websocket.readText
 import io.ktor.http.content.default
 import io.ktor.http.content.files
 import io.ktor.http.content.static
-import io.ktor.http.websocket.websocketServerAccept
 import io.ktor.response.respond
 import io.ktor.response.respondText
 import io.ktor.routing.get
 import io.ktor.routing.routing
-import io.ktor.serialization.DefaultJsonConfiguration
 import io.ktor.serialization.json
 import io.ktor.serialization.serialization
 import io.ktor.websocket.WebSocketServerSession
 import io.ktor.websocket.WebSockets
 import io.ktor.websocket.webSocket
+import kotlinx.serialization.PolymorphicSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.cbor.Cbor
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonConfiguration
-import model.User
+import model.IntMessage
+import model.Message
 import net.sunaba.appengine.AppEngine
 import net.sunaba.appengine.AppEngineDeferred
 import net.sunaba.appengine.HelloDeferred
 import net.sunaba.appengine.deferred
 import java.io.PrintWriter
 import java.io.StringWriter
-
-@Serializable
-class Hoge(val test:Int)
 
 fun Application.module() {
 
@@ -91,9 +82,10 @@ fun Application.module() {
                     is Frame.Text -> {
                         val text = frame.readText()
 
-                        sessions.forEach {
-                            it.outgoing.send(Frame.Text("YOU SAID: $text"))
-                        }
+//                        sessions.forEach {
+//                            it.outgoing.send(Frame.Text("YOU SAID: $text"))
+//                        }
+
 
 
                         if (text.equals("bye", ignoreCase = true)) {
@@ -122,6 +114,13 @@ fun Application.module() {
 
         get("/hello") {
             call.respondText { "hello" }
+
+            val cbor = Cbor(context = model.module)
+            val serializer = PolymorphicSerializer(Message::class)
+            val frame = Frame.Binary(true, cbor.dump(serializer, IntMessage(123)))
+            sessions.forEach {
+                it.outgoing.send(frame)
+            }
         }
 
         get("props") {
@@ -142,13 +141,6 @@ fun Application.module() {
 
         get("/tasks/add") {
             call.respondText(deferred(HelloDeferred("Kotlin World")).name)
-        }
-
-        get("/json/user") {
-            call.respond(User(1, "Taro"))
-        }
-        get("/json/test") {
-            call.respond(User(1, "Taro"))
         }
     }
 }

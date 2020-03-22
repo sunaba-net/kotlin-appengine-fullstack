@@ -47,15 +47,15 @@ class AppEngineDeferred(internal val config: Configuration) {
     ) {
         companion object {
             // Acquisition of metadata is costly, so delay acquisition
-            const val CURRENT_REGION_LATER: String = "__CURRENT_REGION_LATER__"
+            const val GCLOUD_REGION: String = "__GCLOUD_REGION__"
         }
 
-        private val currentRegion: String by lazy { getMetaData("/computeMetadata/v1/instance/zone", "") }
+        private val gcloudRegion: String by lazy { getMetaData("/computeMetadata/v1/instance/zone", "") }
 
-        private var _region: String = CURRENT_REGION_LATER
+        private var _region: String = GCLOUD_REGION
 
         var region: String
-            get() = if (_region == CURRENT_REGION_LATER) currentRegion else _region
+            get() = if (_region == GCLOUD_REGION) gcloudRegion else _region
             set(value) {
                 _region = value
             }
