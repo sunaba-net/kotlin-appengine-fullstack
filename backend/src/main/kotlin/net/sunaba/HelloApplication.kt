@@ -29,6 +29,7 @@ import kotlinx.serialization.cbor.Cbor
 import kotlinx.serialization.json.JsonConfiguration
 import model.IntMessage
 import model.Message
+import model.StringMessage
 import net.sunaba.appengine.AppEngine
 import net.sunaba.appengine.AppEngineDeferred
 import net.sunaba.appengine.HelloDeferred
@@ -117,7 +118,12 @@ fun Application.module() {
 
             val cbor = Cbor(context = model.module)
             val serializer = PolymorphicSerializer(Message::class)
-            val frame = Frame.Binary(true, cbor.dump(serializer, IntMessage(123)))
+            val msg = when ((Math.random() * 2).toInt()) {
+                0->IntMessage(123)
+                else->StringMessage("Hello Kotlin")
+            }
+            val frame = Frame.Binary(true, cbor.dump(serializer, msg))
+
             sessions.forEach {
                 it.outgoing.send(frame)
             }
