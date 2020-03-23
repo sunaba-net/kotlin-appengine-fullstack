@@ -1,24 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="76289ea7-34a0-43fe-a2e7-c610facdb5a9" name="Default Changelist" comment="" />
+    <list default="true" id="76289ea7-34a0-43fe-a2e7-c610facdb5a9" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.WebSocketTest/.idea/contentModel.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.WebSocketTest/.idea/contentModel.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.WebSocketTest/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.WebSocketTest/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Piisu.CBOR/CBOR.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Piisu.CBOR/CBOR.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scenes/SampleScene.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/SampleScene.unity" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/WebSocketController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/WebSocketController.cs" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/Assets/Model/IntMessage.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/437BA245-D840-4784-B9FB-AB9B439AC908/7a/ea09afbb/Object.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Model/Message.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/38D3CEF1-4C5A-4FC9-A92D-E0991034BC1A/a1/26f3fbc2/WebSocket.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/WebSocketController.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/437BA245-D840-4784-B9FB-AB9B439AC908/5c/a0253f2c/ThreadPoolWorkQueue.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Lib/WebSocket.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Piisu.CBOR/CBOR.cs" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
+        <option value="$PROJECT_DIR$/Assets/Model/IntMessage.cs" />
+        <option value="$PROJECT_DIR$/Assets/Piisu.CBOR/CBOR.cs" />
         <option value="$PROJECT_DIR$/Assets/WebSocketController.cs" />
       </list>
     </option>
   </component>
   <component name="ProjectId" id="1ZVRkbDIw689s7Lp6hLq81eqnWI" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showExcludedFiles" value="true" />
@@ -28,7 +46,9 @@
     <property name="Discover.Launch.Via.Unity" value="true" />
     <property name="Rider.SolutionExplorerActivator" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="TWShift.3" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="settings.editor.selected.configurable" value="CodeLensConfigurable" />
   </component>
   <component name="RunManager" selected="Attach to Unity Editor.Attach to Unity Editor">
     <configuration name="Attach to Unity Editor &amp; Play" type="UNITY_DEBUG_RUN_CONFIGURATION" factoryName="UNITY_ATTACH_AND_PLAY" show_console_on_std_err="false" show_console_on_std_out="false" port="50000" address="localhost">
@@ -37,10 +57,10 @@
       <option name="pid" />
       <method v="2" />
     </configuration>
-    <configuration name="Attach to Unity Editor" type="UNITY_DEBUG_RUN_CONFIGURATION" factoryName="Unity Debug" show_console_on_std_err="false" show_console_on_std_out="false" port="50000" address="localhost">
+    <configuration name="Attach to Unity Editor" type="UNITY_DEBUG_RUN_CONFIGURATION" factoryName="Unity Debug" show_console_on_std_err="false" show_console_on_std_out="false" port="50000" address="localhost" ignored-value-for-modified-check="27540">
       <option name="allowRunningInParallel" value="false" />
       <option name="listenPortForConnections" value="false" />
-      <option name="pid" />
+      <option name="pid" value="27540" />
       <method v="2" />
     </configuration>
   </component>
@@ -56,6 +76,8 @@
       <updated>1584922419622</updated>
       <workItem from="1584922423861" duration="263000" />
       <workItem from="1584922722977" duration="559000" />
+      <workItem from="1584924048000" duration="37000" />
+      <workItem from="1584924097290" duration="775000" />
     </task>
     <servers />
   </component>
@@ -64,4 +86,97 @@
   </component>
   <component name="UnityProjectConfiguration" hasMinimizedUI="true" />
   <component name="UnityUnitTestConfiguration" currentTestLauncher="EditMode" />
+  <component name="WindowStateProjectService">
+    <state x="1545" y="518" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1584924167567">
+      <screen x="0" y="0" width="3009" height="1280" />
+    </state>
+    <state x="1545" y="518" key="#com.intellij.fileTypes.FileTypeChooser/0.0.3009.1280@0.0.3009.1280" timestamp="1584924167567" />
+    <state width="1494" height="423" key="GridCell.Tab.0.bottom" timestamp="1584924872645">
+      <screen x="0" y="0" width="3009" height="1280" />
+    </state>
+    <state width="1494" height="423" key="GridCell.Tab.0.bottom/0.0.3009.1280@0.0.3009.1280" timestamp="1584924872645" />
+    <state width="1494" height="423" key="GridCell.Tab.0.center" timestamp="1584924872644">
+      <screen x="0" y="0" width="3009" height="1280" />
+    </state>
+    <state width="1494" height="423" key="GridCell.Tab.0.center/0.0.3009.1280@0.0.3009.1280" timestamp="1584924872644" />
+    <state width="1494" height="423" key="GridCell.Tab.0.left" timestamp="1584924872644">
+      <screen x="0" y="0" width="3009" height="1280" />
+    </state>
+    <state width="1494" height="423" key="GridCell.Tab.0.left/0.0.3009.1280@0.0.3009.1280" timestamp="1584924872644" />
+    <state width="1494" height="423" key="GridCell.Tab.0.right" timestamp="1584924872644">
+      <screen x="0" y="0" width="3009" height="1280" />
+    </state>
+    <state width="1494" height="423" key="GridCell.Tab.0.right/0.0.3009.1280@0.0.3009.1280" timestamp="1584924872644" />
+    <state width="1494" height="423" key="GridCell.Tab.1.bottom" timestamp="1584924872645">
+      <screen x="0" y="0" width="3009" height="1280" />
+    </state>
+    <state width="1494" height="423" key="GridCell.Tab.1.bottom/0.0.3009.1280@0.0.3009.1280" timestamp="1584924872645" />
+    <state width="1494" height="423" key="GridCell.Tab.1.center" timestamp="1584924872645">
+      <screen x="0" y="0" width="3009" height="1280" />
+    </state>
+    <state width="1494" height="423" key="GridCell.Tab.1.center/0.0.3009.1280@0.0.3009.1280" timestamp="1584924872645" />
+    <state width="1494" height="423" key="GridCell.Tab.1.left" timestamp="1584924872645">
+      <screen x="0" y="0" width="3009" height="1280" />
+    </state>
+    <state width="1494" height="423" key="GridCell.Tab.1.left/0.0.3009.1280@0.0.3009.1280" timestamp="1584924872645" />
+    <state width="1494" height="423" key="GridCell.Tab.1.right" timestamp="1584924872645">
+      <screen x="0" y="0" width="3009" height="1280" />
+    </state>
+    <state width="1494" height="423" key="GridCell.Tab.1.right/0.0.3009.1280@0.0.3009.1280" timestamp="1584924872645" />
+    <state width="1494" height="423" key="GridCell.Tab.2.bottom" timestamp="1584924872645">
+      <screen x="0" y="0" width="3009" height="1280" />
+    </state>
+    <state width="1494" height="423" key="GridCell.Tab.2.bottom/0.0.3009.1280@0.0.3009.1280" timestamp="1584924872645" />
+    <state width="1494" height="423" key="GridCell.Tab.2.center" timestamp="1584924872645">
+      <screen x="0" y="0" width="3009" height="1280" />
+    </state>
+    <state width="1494" height="423" key="GridCell.Tab.2.center/0.0.3009.1280@0.0.3009.1280" timestamp="1584924872645" />
+    <state width="1494" height="423" key="GridCell.Tab.2.left" timestamp="1584924872645">
+      <screen x="0" y="0" width="3009" height="1280" />
+    </state>
+    <state width="1494" height="423" key="GridCell.Tab.2.left/0.0.3009.1280@0.0.3009.1280" timestamp="1584924872645" />
+    <state width="1494" height="423" key="GridCell.Tab.2.right" timestamp="1584924872645">
+      <screen x="0" y="0" width="3009" height="1280" />
+    </state>
+    <state width="1494" height="423" key="GridCell.Tab.2.right/0.0.3009.1280@0.0.3009.1280" timestamp="1584924872645" />
+    <state width="1494" height="423" key="GridCell.Tab.3.bottom" timestamp="1584924872645">
+      <screen x="0" y="0" width="3009" height="1280" />
+    </state>
+    <state width="1494" height="423" key="GridCell.Tab.3.bottom/0.0.3009.1280@0.0.3009.1280" timestamp="1584924872645" />
+    <state width="1494" height="423" key="GridCell.Tab.3.center" timestamp="1584924872645">
+      <screen x="0" y="0" width="3009" height="1280" />
+    </state>
+    <state width="1494" height="423" key="GridCell.Tab.3.center/0.0.3009.1280@0.0.3009.1280" timestamp="1584924872645" />
+    <state width="1494" height="423" key="GridCell.Tab.3.left" timestamp="1584924872645">
+      <screen x="0" y="0" width="3009" height="1280" />
+    </state>
+    <state width="1494" height="423" key="GridCell.Tab.3.left/0.0.3009.1280@0.0.3009.1280" timestamp="1584924872645" />
+    <state width="1494" height="423" key="GridCell.Tab.3.right" timestamp="1584924872645">
+      <screen x="0" y="0" width="3009" height="1280" />
+    </state>
+    <state width="1494" height="423" key="GridCell.Tab.3.right/0.0.3009.1280@0.0.3009.1280" timestamp="1584924872645" />
+    <state x="1531" y="321" key="SettingsEditor" timestamp="1584924865987">
+      <screen x="0" y="0" width="3009" height="1280" />
+    </state>
+    <state x="1531" y="321" key="SettingsEditor/0.0.3009.1280@0.0.3009.1280" timestamp="1584924865987" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="DotNet Breakpoints">
+          <url>file://$PROJECT_DIR$/Assets/WebSocketController.cs</url>
+          <line>20</line>
+          <properties documentPath="$PROJECT_DIR$/Assets/WebSocketController.cs" initialLine="22">
+            <startOffsets>
+              <option value="447" />
+            </startOffsets>
+            <endOffsets>
+              <option value="503" />
+            </endOffsets>
+          </properties>
+          <option name="timeStamp" value="3" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
 </project>

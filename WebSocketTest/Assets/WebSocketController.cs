@@ -3,6 +3,7 @@ using HybridWebSocket;
 using model;
 using Piisu.CBOR;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class WebSocketController : MonoBehaviour
 {
@@ -12,6 +13,7 @@ public class WebSocketController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        Debug.Log("Start");
         webSocket = WebSocketFactory.CreateInstance("ws://localhost:8081/chat");
 
         webSocket.OnMessage += data =>

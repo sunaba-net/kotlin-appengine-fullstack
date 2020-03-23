@@ -5,14 +5,11 @@ using UnityEngine;
 
 namespace Piisu.CBOR
 {
-
     public static class ConverterExtension
     {
         public static T FromBytes<T>(this ICBORToFromConverter<T> converter, byte[] bytes)
         {
-            var cbor = CBORObject.DecodeFromBytes(bytes);
-            Debug.Log(cbor.ToJSONString());
-            return converter.FromCBORObject(cbor);
+            return converter.FromCBORObject(CBORObject.DecodeFromBytes(bytes));
         }
 
         public static byte[] ToBytes<T>(this ICBORConverter<T> converter, T obj)
@@ -20,7 +17,7 @@ namespace Piisu.CBOR
             return converter.ToCBORObject(obj).EncodeToBytes();
         }
     }
-    
+
     class PrimitiveConverter<T> : ICBORToFromConverter<T>
     {
         public static readonly PrimitiveConverter<T> Instance = new PrimitiveConverter<T>();
@@ -29,7 +26,7 @@ namespace Piisu.CBOR
         {
             return CBORObject.FromObject(obj);
         }
-    
+
         public T FromCBORObject(CBORObject obj)
         {
             return obj.ToObject<T>();
@@ -44,6 +41,7 @@ namespace Piisu.CBOR
         {
             this.itemConverter = itemConverter;
         }
+
         public CBORObject ToCBORObject(List<T> obj)
         {
             var len = obj.Count;
@@ -52,6 +50,7 @@ namespace Piisu.CBOR
             {
                 array.Add(itemConverter.ToCBORObject(obj[i]));
             }
+
             return array;
         }
 
@@ -63,10 +62,11 @@ namespace Piisu.CBOR
             {
                 list[i] = itemConverter.FromCBORObject(obj[i]);
             }
+
             return list;
         }
     }
-    
+
     class ReferenceArrayConverter<T> : ICBORToFromConverter<T[]>
     {
         private ICBORToFromConverter<T> itemConverter;
@@ -75,6 +75,7 @@ namespace Piisu.CBOR
         {
             this.itemConverter = itemConverter;
         }
+
         public CBORObject ToCBORObject(T[] obj)
         {
             var len = obj.Length;
@@ -83,6 +84,7 @@ namespace Piisu.CBOR
             {
                 array.Add(itemConverter.ToCBORObject(obj[i]));
             }
+
             return array;
         }
 
@@ -94,14 +96,15 @@ namespace Piisu.CBOR
             {
                 array[i] = itemConverter.FromCBORObject(obj[i]);
             }
+
             return array;
         }
-
-   }
+    }
 
     public class DateTimeConverter : ICBORToFromConverter<DateTime>
     {
         public static readonly DateTimeConverter Instance = new DateTimeConverter();
+
         public DateTime FromCBORObject(CBORObject obj)
         {
             long unixTime = obj.ToObject<long>();
