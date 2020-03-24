@@ -2,7 +2,7 @@ group = "net.sunaba"
 version = "1.0-SNAPSHOT"
 
 plugins {
-    val kotlinVersion = "1.3.70"
+    val kotlinVersion = "1.3.71"
 
     kotlin("jvm") version kotlinVersion apply false
     id("com.google.cloud.tools.appengine") version "2.2.0" apply false

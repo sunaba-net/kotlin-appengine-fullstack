@@ -1,12 +1,46 @@
 
 import com.soywiz.korio.async.async
+import com.soywiz.korio.net.ws.WebSocketClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.PolymorphicSerializer
-import model.User
 import vue.Vue
 import vue.VueComponent
+import vue.VueComponentConfig
 import vue.VueData
 import websocket.AutoWebSocketClient
+
+
+class ChatModel {
+
+    val websocket:AutoWebSocketClient = AutoWebSocketClient("ws://localhost:8081/hoge")
+
+}
+
+open class Chat:VueComponent<ChatModel>({
+
+    template = """
+        <span>
+        {{websocket}}
+        </span>
+    """.trimIndent()
+    data = {ChatModel()}
+
+    val hoge = 123
+}) {
+
+
+}
+
+fun <T> register(name:String, configure:VueComponentConfig<T>.()->Unit) {
+
+}
+
+fun hoge() {
+    register<String>("") {
+        template = ""
+        data = {""}
+    }
+}
 
 open class ButtonCounter : VueComponent<ButtonCounter.CountModel>({
     template = """
@@ -71,6 +105,7 @@ suspend fun main() {
     VueComponent("button-counter", ButtonCounter())
     VueComponent("button-counter2", ButtonCounter2())
     VueComponent("reverse-button", ReverseButton())
+    VueComponent("chat", Chat())
     Vue(object {
         val el = "#components-demo"
     })

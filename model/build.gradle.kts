@@ -1,10 +1,5 @@
 import org.jetbrains.kotlin.kapt3.base.Kapt
 
-plugins {
-    kotlin("kapt")
-}
-
-
 kotlin {
     jvm()
     js {
@@ -21,13 +16,8 @@ kotlin {
             dependencies {
                 implementation(kotlin("stdlib-common"))
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime-common:$serialization_version")
-
-                // https://stackoverflow.com/questions/59321848/using-kapt-with-multiplatform-subproject
-                configurations.get("kapt").dependencies.add(project(":serial-module-generator"))
             }
         }
-        //kaptで追加されたソースをソースパスに追加
-        this["commonMain"].kotlin.srcDir("$projectDir/build/generated/source/kaptKotlin/main")
 
         val commonTest by getting {
             dependencies {
@@ -49,11 +39,5 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime-js:$serialization_version")
             }
         }
-    }
-}
-
-kapt {
-    arguments {
-        //arg("serializers.output", "$projectDir/src/commonMain/kotlin")
     }
 }

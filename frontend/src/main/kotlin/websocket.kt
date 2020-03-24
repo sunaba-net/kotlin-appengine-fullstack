@@ -11,7 +11,7 @@ import kotlin.js.Json
 
 
 
-class AutoWebSocketClient(url: String, protocols: List<String>? = null, val DEBUG: Boolean) :
+class AutoWebSocketClient(url: String, protocols: List<String>? = null, val DEBUG: Boolean=false) :
         WebSocketClient(url, protocols, true) {
 
     private lateinit var jsws: WebSocket
@@ -24,6 +24,7 @@ class AutoWebSocketClient(url: String, protocols: List<String>? = null, val DEBU
     }
 
     private fun cleanup() {
+        jsws.close()
         jsws.onerror = null
         jsws.onopen = null
         jsws.onclose = null

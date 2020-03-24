@@ -1,10 +1,10 @@
 package  vue
 
-class VueData<T>(var data:T)
+class VueData<T>(var data: T)
 
 class VueComponentConfig<T>() {
     var template: String = ""
-    lateinit var data: (() -> T)
+    var data: (() -> T) = { js("{}") as T }
 }
 
 abstract class VueComponent<T : Any>(val config: VueComponentConfig<T>.() -> Unit) {
@@ -12,7 +12,7 @@ abstract class VueComponent<T : Any>(val config: VueComponentConfig<T>.() -> Uni
         get() = js("this.\$data") as T
 }
 
-inline fun <reified T:Any> VueComponent(name:String, component:VueComponent<T>) {
+inline fun <reified T : Any> VueComponent(name: String, component: VueComponent<T>) {
     Vue.component(name, component.toVueObject())
 }
 
