@@ -6,6 +6,7 @@ package vue
 external class Vue(options:dynamic) {
     companion object {
         fun component(name:String, options:dynamic):Any
+        fun use(plugin:dynamic, options:dynamic):Any
     }
 }
 

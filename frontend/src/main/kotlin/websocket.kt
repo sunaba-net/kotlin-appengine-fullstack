@@ -34,7 +34,6 @@ class AutoWebSocketClient(url: String, protocols: List<String>? = null, val DEBU
     private val _onopen = { e: Event -> onOpen(Unit) }
 
     private val _onerror = { e: dynamic ->
-        println(jsws.readyState)
         onError(Exception())
     }
 
