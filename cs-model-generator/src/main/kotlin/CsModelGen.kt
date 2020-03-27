@@ -21,6 +21,8 @@ class CsModelGen(val context: SerialModule = EmptyModule, var dstDir: File = Fil
     internal val kotlin.reflect.KProperty<*>.csField: String
         get() = "${returnType.csTypeName} ${name} {get; set;}"
 
+
+
     fun generatePolymorphic(clazz: KClass<*>, defaultImpl: KClass<*>? = null) {
         val polyMap = context.javaClass.declaredFields.find { it.name == "polyBase2Serializers" }!!.let {
             it.isAccessible = true
@@ -38,6 +40,7 @@ class CsModelGen(val context: SerialModule = EmptyModule, var dstDir: File = Fil
         outFile.parentFile.mkdirs()
         outFile.printWriter(Charsets.UTF_8).use {
             val modelName = clazz.simpleName
+            val namespace = clazz.qualifiedName!!.split(".").dropLast(1).joinToString(".")
             val alreadyDeclaredProperties = clazz.superclasses.flatMap { it.memberProperties.map { it.name } }
 
             it.println("""
@@ -46,7 +49,7 @@ class CsModelGen(val context: SerialModule = EmptyModule, var dstDir: File = Fil
                     using PeterO.Cbor;
                     using Piisu.CBOR;
                 """.trimIndent())
-            it.println("namespace models.simple {")
+            it.println("namespace ${namespace} {")
             val inheritClasses = clazz.supertypes.filter { it.classifier != Any::class }.map { (it.classifier as KClass<*>).qualifiedName }
                     .let {
                         if (it.isEmpty()) "" else it.joinToString(", ", prefix = ": ")
@@ -121,6 +124,8 @@ class CsModelGen(val context: SerialModule = EmptyModule, var dstDir: File = Fil
                 .flatMap { it.memberProperties.map { it.name } }
 
         val modelName = clazz.simpleName
+        val namespace = clazz.qualifiedName!!.split(".").dropLast(1).joinToString(".")
+
         outFile.printWriter(Charsets.UTF_8).use {
             it.println("""
                 using System;
@@ -128,7 +133,7 @@ class CsModelGen(val context: SerialModule = EmptyModule, var dstDir: File = Fil
                 using PeterO.Cbor;
                 using Piisu.CBOR;
             """.trimIndent())
-            it.println("namespace models.simple {")
+            it.println("namespace ${namespace} {")
             val inheritClasses = clazz.supertypes.filter { it.classifier != Any::class }.map { (it.classifier as KClass<*>).qualifiedName }
                     .let {
                         if (it.isEmpty()) "" else it.joinToString(", ", prefix = ": ")
