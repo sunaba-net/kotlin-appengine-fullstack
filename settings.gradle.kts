@@ -19,3 +19,4 @@ pluginManagement {
 include("frontend")
 include("model")
 include("cs-model-generator")
+include("react-hands-on")

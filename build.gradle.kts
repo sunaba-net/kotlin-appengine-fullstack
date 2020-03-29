@@ -24,6 +24,7 @@ subprojects {
             plugin("org.gradle.application")
             plugin(kotlin("plugin.serialization"))
         }
+        "react-hands-on",
         "frontend" -> apply {
             plugin(kotlin("js"))
             plugin(kotlin("plugin.serialization"))
