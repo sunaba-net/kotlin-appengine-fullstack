@@ -44,6 +44,7 @@ application {
 
 tasks.appengineStage {
     dependsOn(":frontend:browserDistribution")
+    dependsOn(":react-hands-on:browserDistribution")
     doLast {
         copy {
             from(project.configurations.runtimeClasspath)
@@ -53,6 +54,11 @@ tasks.appengineStage {
             from(File(rootDir, "frontend/build/distributions"))
             into(File(stagingExtension.stagingDirectory, "web"))
         }
+        copy {
+            from(File(rootDir, "react-hands-on/build/distributions"))
+            into(File(stagingExtension.stagingDirectory, "web/react"))
+        }
+
         File(stagingExtension.stagingDirectory, "app.yaml").let {f->
             f.writeText(f.readText().replace("{{mainClassName}}", application.mainClassName))
         }

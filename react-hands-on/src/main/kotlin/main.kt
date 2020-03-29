@@ -1,12 +1,12 @@
 import kotlinx.css.*
-import react.RBuilder
-import react.RComponent
-import react.RProps
-import react.RState
+import kotlinx.html.js.onClickFunction
+import kotlinx.html.onClick
+import react.*
 import react.dom.*
 import styled.css
 import styled.styledDiv
 import kotlin.browser.document
+import kotlin.browser.window
 
 val unwatchedVideos = listOf(
         Video(1, "Building and breaking things", "John Doe", "https://youtu.be/PsaFVLr8t4E"),
@@ -18,24 +18,44 @@ val watchedVideos = listOf(
         Video(4, "Mouseless development", "Tom Jerry", "https://youtu.be/PsaFVLr8t4E")
 )
 
-interface VideoListProps: RProps {
-    var videos:List<Video>
+interface VideoListProps : RProps {
+    var videos: List<Video>
 }
 
-class VideoList:RComponent<VideoListProps, RState>() {
+interface VideoListState:RState {
+    var selectedVideo:Video?
+}
+
+class VideoList : RComponent<VideoListProps, VideoListState>() {
     override fun RBuilder.render() {
-        for(video in props.videos) {
+        for (video in props.videos) {
             p {
                 key = video.id.toString()
+                attrs {
+                    onClickFunction = {
+                        setState { selectedVideo = video }
+                    }
+                }
+                if (video == state.selectedVideo) {
+                    + "▶ "
+                }
                 +"${video.speaker}: ${video.title}"
             }
         }
     }
 }
 
+fun RBuilder.videoList(handler: VideoListProps.() -> Unit): ReactElement = child(VideoList::class) {
+    attrs(handler)
+}
+
 data class Video(val id: Int, val title: String, val speaker: String, val videoUrl: String)
 
-class App: RComponent<RProps, RState>() {
+interface AppState: RState {
+    var currentVideo: Video?
+}
+
+class App : RComponent<RProps, AppState>() {
     override fun RBuilder.render() {
         h1 {
             +"KotlinConf Explorer"
@@ -44,16 +64,13 @@ class App: RComponent<RProps, RState>() {
             h3 {
                 +"Videos to watch"
             }
-            child(VideoList::class) {
-                attrs.videos = unwatchedVideos
-            }
+            videoList { videos = unwatchedVideos }
+
 
             h3 {
                 +"Videos watched"
             }
-            child(VideoList::class) {
-                attrs.videos = watchedVideos
-            }
+            videoList { videos = watchedVideos }
 
         }
         div {
