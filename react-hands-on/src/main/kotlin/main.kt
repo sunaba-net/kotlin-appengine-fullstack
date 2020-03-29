@@ -56,7 +56,7 @@ class VideoPlayer: RComponent<VideoPlayerProps, RState>() {
                 right = 10.px
             }
             h3 {
-                +"John Doe: Building and breaking things"
+                + props.video.title
             }
 
             styledButton {
