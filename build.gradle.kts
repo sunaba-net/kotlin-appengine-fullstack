@@ -45,8 +45,6 @@ subprojects {
 allprojects {
     version = "1.0.0-SNAPSHOT"
     group = "net.sunaba"
-    group = "org.example"
-    version = "1.0-SNAPSHOT"
 
     repositories {
         jcenter()

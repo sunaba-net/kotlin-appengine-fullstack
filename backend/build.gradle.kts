@@ -12,6 +12,8 @@ dependencies {
     implementation(ktor("server-netty"))
     implementation(ktor("client-cio"))
     implementation(ktor("serialization"))
+    implementation(ktor("auth"))
+    implementation(ktor("auth-jwt"))
     implementation(ktor("websockets"))
 
     implementation("com.google.cloud:google-cloud-tasks:1.28.2")

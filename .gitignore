@@ -3,5 +3,6 @@
 
 .gradle/
 
+out/
 build/
 /cs-model-generator/hoge/
