@@ -7,6 +7,8 @@ val ktorVersion = "1.3.1"
 
 dependencies {
     implementation(kotlin("stdlib-js"))
+    testImplementation(kotlin("test-js"))
+
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime-js:0.20.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-cbor-js:0.20.0")
     implementation("com.soywiz.korlibs.korio:korio:1.10.0")
@@ -21,9 +23,16 @@ kotlin {
             useCommonJs()
             runTask {
             }
+            testTask {
+                useKarma {
+                    useChromeHeadless()
+                }
+            }
         }
     }
     sourceSets["main"].dependencies {
         implementation(npm("vue"))
+        implementation(npm("firebase"))
+        implementation(npm("firebaseui"))
     }
 }
