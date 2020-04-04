@@ -50,11 +50,24 @@ open external class AuthCredential {
     val signInMethod: String
 }
 
-external class UserCredential
+external interface UserCredential {
+    val additionalUserInfo:AdditionalUserInfo?
+    val credential:AuthCredential
+    val operationType:String?
+    val user:User
+}
+
+external interface  AdditionalUserInfo {
+    val isNewUser:Boolean
+    val profile:dynamic
+    val providerId:String
+    val username:String?
+}
 
 open external class AuthProvider {
     val providerId:String
 }
+
 external class EmailAuthProvider:AuthProvider {
     companion object {
         val EMAIL_LINK_SIGN_IN_METHOD:String
