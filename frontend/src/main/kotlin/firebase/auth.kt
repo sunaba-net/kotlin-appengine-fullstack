@@ -9,6 +9,8 @@ import kotlin.js.Promise
 external class Auth {
     val app: App
     val currentUser: User?
+
+    fun onIdTokenChanged(action: (user:User)->Unit)
 }
 
 open external class UserInfo {

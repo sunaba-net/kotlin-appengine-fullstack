@@ -23,20 +23,24 @@ class UIConfigBuilder {
     var signInOptions: Array<dynamic> = arrayOf()
         set(value) {
             obj.signInOptions = value
+            field = value
         }
 
     var signInFlow:SignInFlow = SignInFlow.REDIRECT
         set(value) {
             obj.signInFlow = value.value
+            field = value
         }
 
     var tosUrl:String = ""
         set(value) {
             obj.tosUrl = value
+            field = value
         }
     var privacyPolicyUrl:String = ""
         set(value) {
             obj.privacyPolicyUrl = value
+            field = value
         }
 
     fun build() = obj

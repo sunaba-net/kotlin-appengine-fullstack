@@ -4,7 +4,6 @@
 package firebaseui.auth
 
 import firebase.auth.Auth
-import firebase.auth.AuthCredential
 import firebase.auth.AuthProvider
 import firebase.auth.UserCredential
 
