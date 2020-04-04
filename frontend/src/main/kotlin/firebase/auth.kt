@@ -11,6 +11,8 @@ external class Auth {
     val currentUser: User?
 
     fun onIdTokenChanged(action: (user:User)->Unit)
+    fun signInWithPopup(provider:AuthProvider):Promise<UserCredential>
+    fun signInWithEmailAndPassword(email:String, password:String):Promise<UserCredential>
 }
 
 open external class UserInfo {

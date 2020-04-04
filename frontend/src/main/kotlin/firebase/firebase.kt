@@ -11,3 +11,10 @@ external interface Firebase: App {
 @JsName("default")
 external val firebase:Firebase
 
+
+external interface FirebaseError {
+    val code:String
+    val message:String
+    val name:String
+    val stack:String?
+}
