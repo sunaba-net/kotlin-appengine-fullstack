@@ -1,4 +1,4 @@
-package net.sunaba.ktor.auth
+package net.sunaba.auth
 
 import com.auth0.jwk.GuavaCachedJwkProvider
 import com.auth0.jwk.UrlJwkProvider
@@ -16,10 +16,8 @@ internal const val JWK_PROVIDER_URL = "https://www.googleapis.com/service_accoun
 
 class FirebaseJwtConfiguration(val projectId: String, val name: String?) {
 
-    private fun JWTCredential.validateAudience() = payload.audience.contains(projectId)
-
     internal var authenticationFunction: AuthenticationFunction<JWTCredential> = { credentials ->
-        if (credentials.validateAudience()) JWTPrincipal(credentials.payload) else null
+        JWTPrincipal(credentials.payload)
     }
 
     /**
@@ -27,9 +25,9 @@ class FirebaseJwtConfiguration(val projectId: String, val name: String?) {
      *
      * @param validate
      */
-    fun validate(validate: suspend ApplicationCall.(JWTCredential) -> Boolean) {
+    fun validate(validate: suspend ApplicationCall.(credential:JWTCredential) -> Boolean) {
         authenticationFunction = { credentials ->
-            if (credentials.validateAudience() && validate.invoke(this, credentials)) {
+            if (validate.invoke(this, credentials)) {
                 JWTPrincipal(credentials.payload)
             } else null
         }
@@ -47,7 +45,9 @@ fun Authentication.Configuration.firebaseJwt(
     val jwkProvider = UrlJwkProvider(URL(JWK_PROVIDER_URL))
     val cachedJwkProvider = GuavaCachedJwkProvider(jwkProvider)
     jwt(config.name) {
-        verifier(cachedJwkProvider, jwkIssuer)
+        verifier(cachedJwkProvider, jwkIssuer) {
+            withAudience(audience)
+        }
         validate(config.authenticationFunction)
     }
 }
