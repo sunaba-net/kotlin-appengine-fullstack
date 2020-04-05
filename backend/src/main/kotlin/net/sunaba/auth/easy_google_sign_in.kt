@@ -68,7 +68,7 @@ class EasyGoogleSignInProvider(config: Configuration) : AuthenticationProvider(c
     }
 }
 
-fun easyGoogleSignInConfig(name: String, configure: EasyGoogleSignInProvider.Configuration.() -> Unit): EasyGoogleSignInProvider.Configuration = EasyGoogleSignInProvider.Configuration(name).apply(configure)
+fun easyGoogleSignInConfig(name: String?=null, configure: EasyGoogleSignInProvider.Configuration.() -> Unit): EasyGoogleSignInProvider.Configuration = EasyGoogleSignInProvider.Configuration(name).apply(configure)
 
 private val EasyGoogleSignInKey: Any = "EasyGoogleLoginKey"
 
@@ -195,3 +195,6 @@ class CustomClaimer(val builder: JWTCreator.Builder) {
 }
 
 class EasyLoginPrincipal(val jwt: DecodedJWT) : Principal
+
+val EasyLoginPrincipal.email
+    get() = jwt.claims.get("email")!!.asString()

@@ -58,9 +58,6 @@ fun getOwners(projectId: String): List<String> {
 
 
 fun Application.module() {
-
-
-
     install(ContentNegotiation) {
         json(JsonConfiguration.Stable)
         serialization(ContentType.Application.Cbor, Cbor())
