@@ -7,3 +7,9 @@ if (!isKarmaTest) {
         'firebaseui': 'firebaseui'
     }
 }
+
+if (config.devServer) {
+    config.devServer.proxy = {
+        '/hello': 'http://localhost:8081'
+    }
+}

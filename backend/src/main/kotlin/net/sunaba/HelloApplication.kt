@@ -59,8 +59,7 @@ fun getOwners(projectId: String): List<String> {
 
 fun Application.module() {
 
-    install(XForwardedHeaderSupport)
-    install(HttpsRedirect)
+
 
     install(ContentNegotiation) {
         json(JsonConfiguration.Stable)
@@ -88,7 +87,10 @@ fun Application.module() {
     }
 
     //ローカルで実行時はfrontendからのCORSを有効化する
-    if (AppEngine.isLocalEnv) {
+    if (AppEngine.isServiceEnv) {
+        install(XForwardedHeaderSupport)
+        install(HttpsRedirect)
+    } else {
         install(CORS) {
             host("*")
         }
