@@ -27,7 +27,9 @@ import java.net.URL
 import java.net.URLEncoder
 import java.util.*
 
-
+/**
+ * https://developers.google.com/identity/sign-in/web?hl=ja
+ */
 class EasyGoogleSignInProvider(config: Configuration) : AuthenticationProvider(config) {
     class Configuration internal constructor(name: String?) : AuthenticationProvider.Configuration(name) {
 
@@ -148,9 +150,12 @@ fun Routing.installEasyGoogleSignIn(config: EasyGoogleSignInProvider.Configurati
     get(config.loginPath) {
         call.respondText("""<html lang="en">
 <head>
+    <meta content="width=device-width, initial-scale=1, minimum-scale=1" name="viewport">
     <meta name="google-signin-scope" content="email">
     <meta name="google-signin-client_id" content="${config.clientId}">
     <script src="https://apis.google.com/js/platform.js" async defer></script>
+    <style>.abcRioButton {margin:auto;}
+    </style>
 </head>
 <body>
 <div class="g-signin2" data-onsuccess="onSignIn" data-theme="dark"></div>
