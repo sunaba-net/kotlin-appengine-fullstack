@@ -40,11 +40,11 @@ private fun getMetaData(path: String, defaultValue: String): String {
 }
 
 private const val HEADER_AUTHORIZATIOn = "X-Deferred-Authorization"
-typealias Signer = (byteArray: ByteArray) -> ByteArray
+typealias Signer = (taskPayload: ByteArray) -> ByteArray
 
 class AppEngineDeferred(internal val config: Configuration) {
 
-    class Configuration(var executePath: String = "/queue/__deferred__"
+    class Configuration(var path: String = "/queue/__deferred__"
                         , var projectId: String = System.getenv("GOOGLE_CLOUD_PROJECT") ?: ""
     ) {
         companion object {
@@ -55,14 +55,14 @@ class AppEngineDeferred(internal val config: Configuration) {
              * 使用するにはサービス「サービス アカウント トークン作成者」のRoleが必要
              *
              */
-            val COMPUTE_ENGINE_CREDENTIAL_SIGNER: Signer = { byteArray ->
+            val APPLICATION_DEFAULT_CREDENTIAL_SIGNER: Signer = { byteArray ->
                 (GoogleCredentials.getApplicationDefault() as ComputeEngineCredentials).sign(byteArray)
             }
         }
 
         private val gcloudRegion: String by lazy { getMetaData("/computeMetadata/v1/instance/zone", "") }
         private var _region: String = GCLOUD_REGION
-        var taskSigner: Signer = COMPUTE_ENGINE_CREDENTIAL_SIGNER
+        var taskSigner: Signer = APPLICATION_DEFAULT_CREDENTIAL_SIGNER
 
         var region: String
             get() = if (_region == GCLOUD_REGION) gcloudRegion else _region
@@ -78,7 +78,7 @@ class AppEngineDeferred(internal val config: Configuration) {
             val config = Configuration().apply(configure)
             val feature = AppEngineDeferred(config)
             pipeline.routing {
-                post(config.executePath) {
+                post(config.path) {
                     val body = call.request.receiveChannel().toByteArray()
 
                     val taskId = call.request.headers["X-AppEngine-TaskName"]
@@ -131,11 +131,10 @@ private fun Task.verify(headers: Headers): Boolean {
     return true
 }
 
-
 fun Application.deferred(task: DeferredTask, queue: String = "default", builder: AppEngineRouting.Builder.() -> Unit = {}): Task {
     val feature = feature(AppEngineDeferred)
     val config = feature.config
-    val path = config.executePath
+    val path = config.path
 
     return CloudTasksClient.create().use {
         val body = ByteArrayOutputStream().use {
