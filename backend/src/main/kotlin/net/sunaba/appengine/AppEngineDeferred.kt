@@ -39,6 +39,8 @@ private fun getMetaData(path: String, defaultValue: String): String {
     }
 }
 
+typealias Signer = (byteArray: ByteArray) -> ByteArray
+
 class AppEngineDeferred(internal val config: Configuration) {
 
     class Configuration(var executePath: String = "/queue/__deferred__"
@@ -47,11 +49,14 @@ class AppEngineDeferred(internal val config: Configuration) {
         companion object {
             // Acquisition of metadata is costly, so delay acquisition
             const val GCLOUD_REGION: String = "__GCLOUD_REGION__"
+            val COMPUTE_ENGINE_CREDENTIAL_SIGNER: Signer = { byteArray ->
+                (GoogleCredentials.getApplicationDefault() as ComputeEngineCredentials).sign(byteArray)
+            }
         }
 
         private val gcloudRegion: String by lazy { getMetaData("/computeMetadata/v1/instance/zone", "") }
-
         private var _region: String = GCLOUD_REGION
+        var taskSigner: Signer = COMPUTE_ENGINE_CREDENTIAL_SIGNER
 
         var region: String
             get() = if (_region == GCLOUD_REGION) gcloudRegion else _region
@@ -68,11 +73,10 @@ class AppEngineDeferred(internal val config: Configuration) {
             val feature = AppEngineDeferred(config)
             pipeline.routing {
                 post(config.executePath) {
-                    println("appengine deferred")
                     val body = call.request.receiveChannel().toByteArray()
 
-                    val taskId = call.request.headers.get("X-AppEngine-TaskName")
-                    val queue = call.request.headers.get("X-AppEngine-QueueName")
+                    val taskId = call.request.headers["X-AppEngine-TaskName"]
+                    val queue = call.request.headers["X-AppEngine-QueueName"]
                     if (taskId.isNullOrEmpty() || queue.isNullOrEmpty()) {
                         call.respond(HttpStatusCode.Unauthorized, "Invalid TaskName")
                         return@post
@@ -80,16 +84,14 @@ class AppEngineDeferred(internal val config: Configuration) {
 
                     val taskName = TaskName.format(config.projectId, config.region, queue, taskId)
                     val task = CloudTasksClient.create().use { it.getTask(taskName) }
-                    println("getTask: ${task}")
                     if (task == null || !task.verify(call.request.headers)) {
-                        println("Invalid Task: ${taskName}")
                         call.respond(HttpStatusCode.Unauthorized, "Invalid Task")
                         return@post
                     }
 
-                    val sign = sign(body)
-                    if (sign != call.request.headers.get(HEADER_SIGNATURE)) {
-                        println("Invalid Signature: ${taskName}")
+                    val sign = config.taskSigner.invoke(body)
+                    val base64Sign = Base64.getEncoder().encodeToString(sign)
+                    if (base64Sign != call.request.headers.get(HEADER_SIGNATURE)) {
                         call.respond(HttpStatusCode.Unauthorized, "Invalid Signature")
                         return@post
                     }
@@ -107,31 +109,25 @@ class AppEngineDeferred(internal val config: Configuration) {
     }
 }
 
-private fun Task.verify(headers:Headers):Boolean {
-    println("X-AppEngine-TaskRetryCount: ${headers["X-AppEngine-TaskRetryCount"]}, ${this.dispatchCount}")
-    println("X-AppEngine-TaskExecutionCount: ${headers["X-AppEngine-TaskExecutionCount"]}, ${this.responseCount}")
-    println("X-AppEngine-TaskETA:${headers["X-AppEngine-TaskETA"]}, ${this.scheduleTime}") // 誤差がある
-
-    if (dispatchCount.toString() != headers["X-AppEngine-TaskRetryCount"])  {
-        return false;
+private fun Task.verify(headers: Headers): Boolean {
+    if (true != headers["X-AppEngine-TaskRetryCount"]?.let { dispatchCount == it.toInt() }) {
+        return false
     }
-    if (responseCount.toString() != headers["X-AppEngine-TaskRetryCount"])  {
-        return false;
+    if (true != headers["X-AppEngine-TaskExecutionCount"]?.let { responseCount == it.toInt() }) {
+        return false
     }
 
+    // headers["X-AppEngine-TaskETA"]は"1586219797.7147498"のような形式で取得できるが、Task#scheduleTimeとは誤差がある。
+    // 何回か計測したところ、数ナノ秒程度の誤差だが余裕を持って5秒はOKとする
+    if (true != headers["X-AppEngine-TaskETA"]?.let { Math.abs(it.split(".").first().toLong() - scheduleTime.seconds) < 5 }) {
+        return false
+    }
     return true
 }
 
 private const val HEADER_SIGNATURE = "X-DEFERRED-SIGNATURE"
 
-private fun sign(body: ByteArray): String {
-    val sign: ByteArray = (GoogleCredentials.getApplicationDefault() as ComputeEngineCredentials)
-            .sign(body)
-    return Base64.getEncoder().encodeToString(sign)
-}
-
-
-fun Application.deferred(task: DeferredTask, queue: String = "default"): Task {
+fun Application.deferred(task: DeferredTask, queue: String = "default", builder: AppEngineRouting.Builder.() -> Unit = {}): Task {
     val feature = feature(AppEngineDeferred)
     val config = feature.config
     val path = config.executePath
@@ -143,13 +139,16 @@ fun Application.deferred(task: DeferredTask, queue: String = "default"): Task {
             }
             it.toByteArray()
         }
-        val sign = sign(body)
+        val sign = config.taskSigner.invoke(body)
+        val base64Sign = Base64.getEncoder().encodeToString(sign)
         val queuePath = QueueName.of(config.projectId, config.region, queue)
         val requestBuilder = AppEngineHttpRequest.newBuilder()
                 .setRelativeUri(path)
                 .setBody(ByteString.copyFrom(body))
-                .putHeaders(HEADER_SIGNATURE, sign)
+                .putHeaders(HEADER_SIGNATURE, base64Sign)
                 .setHttpMethod(HttpMethod.POST)
+                .setAppEngineRouting(AppEngineRouting.newBuilder().apply(builder))
+
         val task = Task.newBuilder().setAppEngineHttpRequest(requestBuilder.build())
         it.createTask(queuePath, task.build())
     }

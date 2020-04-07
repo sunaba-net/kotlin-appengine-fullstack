@@ -20,7 +20,9 @@ fun Application.login_test_module() {
 
     if (AppEngine.isServiceEnv) {
         install(XForwardedHeaderSupport)
-        install(HttpsRedirect)
+        install(HttpsRedirect) {
+            exclude { it.request.headers.contains("X-AppEngine-TaskName") }
+        }
     }
 
     val loginConfig = easyGoogleSignInConfig {
