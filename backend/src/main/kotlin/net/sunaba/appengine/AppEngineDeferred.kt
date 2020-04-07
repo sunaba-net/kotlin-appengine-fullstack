@@ -39,6 +39,7 @@ private fun getMetaData(path: String, defaultValue: String): String {
     }
 }
 
+private const val HEADER_AUTHORIZATIOn = "X-Deferred-Authorization"
 typealias Signer = (byteArray: ByteArray) -> ByteArray
 
 class AppEngineDeferred(internal val config: Configuration) {
@@ -49,6 +50,11 @@ class AppEngineDeferred(internal val config: Configuration) {
         companion object {
             // Acquisition of metadata is costly, so delay acquisition
             const val GCLOUD_REGION: String = "__GCLOUD_REGION__"
+
+            /**
+             * 使用するにはサービス「サービス アカウント トークン作成者」のRoleが必要
+             *
+             */
             val COMPUTE_ENGINE_CREDENTIAL_SIGNER: Signer = { byteArray ->
                 (GoogleCredentials.getApplicationDefault() as ComputeEngineCredentials).sign(byteArray)
             }
@@ -91,7 +97,7 @@ class AppEngineDeferred(internal val config: Configuration) {
 
                     val sign = config.taskSigner.invoke(body)
                     val base64Sign = Base64.getEncoder().encodeToString(sign)
-                    if (base64Sign != call.request.headers.get(HEADER_SIGNATURE)) {
+                    if (base64Sign != call.request.headers.get(HEADER_AUTHORIZATIOn)) {
                         call.respond(HttpStatusCode.Unauthorized, "Invalid Signature")
                         return@post
                     }
@@ -125,7 +131,6 @@ private fun Task.verify(headers: Headers): Boolean {
     return true
 }
 
-private const val HEADER_SIGNATURE = "X-DEFERRED-SIGNATURE"
 
 fun Application.deferred(task: DeferredTask, queue: String = "default", builder: AppEngineRouting.Builder.() -> Unit = {}): Task {
     val feature = feature(AppEngineDeferred)
@@ -145,7 +150,7 @@ fun Application.deferred(task: DeferredTask, queue: String = "default", builder:
         val requestBuilder = AppEngineHttpRequest.newBuilder()
                 .setRelativeUri(path)
                 .setBody(ByteString.copyFrom(body))
-                .putHeaders(HEADER_SIGNATURE, base64Sign)
+                .putHeaders(HEADER_AUTHORIZATIOn, base64Sign)
                 .setHttpMethod(HttpMethod.POST)
                 .setAppEngineRouting(AppEngineRouting.newBuilder().apply(builder))
 
