@@ -11,9 +11,6 @@ import io.ktor.application.call
 import io.ktor.application.install
 import io.ktor.auth.Authentication
 import io.ktor.auth.authenticate
-import io.ktor.client.HttpClient
-import io.ktor.client.request.headers
-import io.ktor.client.request.post
 import io.ktor.features.*
 import io.ktor.http.ContentType
 import io.ktor.http.cio.websocket.CloseReason
@@ -46,10 +43,9 @@ import net.sunaba.appengine.deferred
 import net.sunaba.auth.easyGoogleSignInConfig
 import net.sunaba.auth.installEasyGoogleSignIn
 import net.sunaba.auth.register
-import java.io.ByteArrayOutputStream
-import java.io.ObjectOutputStream
 import java.io.PrintWriter
 import java.io.StringWriter
+import kotlin.streams.toList
 
 fun isOwner(email: String?) = getOwners("ktor-sunaba").contains("user:${email}")
 
@@ -61,6 +57,20 @@ fun getOwners(projectId: String): List<String> {
             .filter { it.role == "roles/owner" }.flatMap { it.members }
 }
 
+/**
+ * メールアドレスがキーで、ロールのSetがバリューのマップを返す
+ * @param projectId プロジェクトID
+ * @param userOnly プレフィックスが"user:"で始まるアカウントのみを対象とする
+ * @return メールアドレスがキーで、ロールのSetがバリューのマップを返す
+ */
+fun getRoles(projectId: String, userOnly: Boolean = true): Map<String, Set<String>> {
+    val resource = CloudResourceManager.Builder(NetHttpTransport(), JacksonFactory.getDefaultInstance()
+            , HttpCredentialsAdapter(GoogleCredentials.getApplicationDefault())).build()
+
+    return resource.projects().getIamPolicy(projectId, null).execute().bindings
+            .flatMap { binding -> binding.members.stream().filter { !userOnly || it.startsWith("user:") }.map { it!! to binding.role!! }.toList() }
+            .groupBy({ it.first }, { it.second }).map { it.key to it.value.toSet() }.toMap()
+}
 
 fun Application.module() {
     install(ContentNegotiation) {
@@ -223,18 +233,18 @@ fun Application.module() {
     }
 }
 
-suspend fun main() {
-    val http = HttpClient()
-    http.post<String>("https://ktor.sunaba.net/queue/__deferred__") {
-
-        headers {
-            append("X-AppEngine-QueueName", "default")
-        }
-        body = ByteArrayOutputStream().use {
-            ObjectOutputStream(it).use {
-                it.writeObject(TestRetry(3));
-            }
-            it.toByteArray()
-        }
-    }
-}
+//suspend fun main() {
+//    val http = HttpClient()
+//    http.post<String>("https://ktor.sunaba.net/queue/__deferred__") {
+//
+//        headers {
+//            append("X-AppEngine-QueueName", "default")
+//        }
+//        body = ByteArrayOutputStream().use {
+//            ObjectOutputStream(it).use {
+//                it.writeObject(TestRetry(3));
+//            }
+//            it.toByteArray()
+//        }
+//    }
+//}
