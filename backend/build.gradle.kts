@@ -16,7 +16,7 @@ dependencies {
     implementation(ktor("auth-jwt"))
     implementation(ktor("websockets"))
 
-    implementation("com.google.cloud:google-cloud-tasks:1.28.2")
+    implementation("com.google.cloud:google-cloud-tasks:1.29.0")
     implementation("com.google.cloud:google-cloud-storage:1.105.0") {
         exclude("androidx.annotation")
     }
