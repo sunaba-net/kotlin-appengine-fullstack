@@ -39,7 +39,7 @@ private fun getMetaData(path: String, defaultValue: String): String {
     }
 }
 
-private const val HEADER_AUTHORIZATIOn = "X-Deferred-Authorization"
+private const val HEADER_AUTHORIZATION = "X-Deferred-Authorization"
 typealias Signer = (taskPayload: ByteArray) -> ByteArray
 
 class AppEngineDeferred(internal val config: Configuration) {
@@ -97,7 +97,7 @@ class AppEngineDeferred(internal val config: Configuration) {
 
                     val sign = config.taskSigner.invoke(body)
                     val base64Sign = Base64.getEncoder().encodeToString(sign)
-                    if (base64Sign != call.request.headers.get(HEADER_AUTHORIZATIOn)) {
+                    if (base64Sign != call.request.headers.get(HEADER_AUTHORIZATION)) {
                         call.respond(HttpStatusCode.Unauthorized, "Invalid Signature")
                         return@post
                     }
@@ -149,7 +149,7 @@ fun Application.deferred(task: DeferredTask, queue: String = "default", builder:
         val requestBuilder = AppEngineHttpRequest.newBuilder()
                 .setRelativeUri(path)
                 .setBody(ByteString.copyFrom(body))
-                .putHeaders(HEADER_AUTHORIZATIOn, base64Sign)
+                .putHeaders(HEADER_AUTHORIZATION, base64Sign)
                 .setHttpMethod(HttpMethod.POST)
                 .setAppEngineRouting(AppEngineRouting.newBuilder().apply(builder))
 
