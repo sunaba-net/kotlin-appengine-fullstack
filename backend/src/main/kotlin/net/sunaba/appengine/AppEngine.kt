@@ -50,6 +50,10 @@ object AppEngine : CoroutineScope {
         SERVICE_ACCOUNT_DEFAULT_ALIASES("/computeMetadata/v1/instance/service-accounts/default/aliases"),
         SERVICE_ACCOUNT_DEFAULT("/computeMetadata/v1/instance/service-accounts/default/"),
         SERVICE_ACCOUNT_DEFAULT_SCOPES("/computeMetadata/v1/instance/service-accounts/default/scopes");
+
+        val value:String by lazy {
+            metaData[this]?:""
+        }
     }
 
     val metaData: Map<MetaPath, String> by lazy {

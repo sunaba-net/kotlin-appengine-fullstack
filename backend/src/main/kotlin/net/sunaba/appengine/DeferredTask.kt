@@ -4,5 +4,5 @@ import io.ktor.application.ApplicationCall
 import java.io.Serializable
 
 interface DeferredTask : Serializable {
-    fun run(call: ApplicationCall)
+    suspend fun run(call: ApplicationCall)
 }

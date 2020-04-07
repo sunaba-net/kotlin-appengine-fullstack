@@ -11,6 +11,9 @@ import io.ktor.application.call
 import io.ktor.application.install
 import io.ktor.auth.Authentication
 import io.ktor.auth.authenticate
+import io.ktor.client.HttpClient
+import io.ktor.client.request.headers
+import io.ktor.client.request.post
 import io.ktor.features.*
 import io.ktor.http.ContentType
 import io.ktor.http.cio.websocket.CloseReason
@@ -38,11 +41,13 @@ import model.Message
 import model.StringMessage
 import net.sunaba.appengine.AppEngine
 import net.sunaba.appengine.AppEngineDeferred
-import net.sunaba.appengine.HelloDeferred
+import net.sunaba.appengine.TestRetry
 import net.sunaba.appengine.deferred
 import net.sunaba.auth.easyGoogleSignInConfig
 import net.sunaba.auth.installEasyGoogleSignIn
 import net.sunaba.auth.register
+import java.io.ByteArrayOutputStream
+import java.io.ObjectOutputStream
 import java.io.PrintWriter
 import java.io.StringWriter
 
@@ -63,7 +68,6 @@ fun Application.module() {
         serialization(ContentType.Application.Cbor, Cbor())
     }
     install(AppEngineDeferred) {
-        idTokenVerification = true
 //        projectId = "ktor-sunaba"
 //        this.region = "asia-northeast1"
     }
@@ -86,7 +90,9 @@ fun Application.module() {
     //ローカルで実行時はfrontendからのCORSを有効化する
     if (AppEngine.isServiceEnv) {
         install(XForwardedHeaderSupport)
-        install(HttpsRedirect)
+        install(HttpsRedirect) {
+            exclude { it.request.headers.contains("X-AppEngine-TaskName") }
+        }
     } else {
         install(CORS) {
             host("*")
@@ -131,7 +137,7 @@ fun Application.module() {
                 }
 
                 get("/tasks/add") {
-                    call.respondText(deferred(HelloDeferred("Kotlin World")).name)
+                    call.respondText(deferred(TestRetry(3)).name)
                 }
             }
         }
@@ -213,6 +219,22 @@ fun Application.module() {
             sessions.forEach {
                 it.outgoing.send(frame)
             }
+        }
+    }
+}
+
+suspend fun main() {
+    val http = HttpClient()
+    http.post<String>("https://ktor.sunaba.net/queue/__deferred__") {
+
+        headers {
+            append("X-AppEngine-QueueName", "default")
+        }
+        body = ByteArrayOutputStream().use {
+            ObjectOutputStream(it).use {
+                it.writeObject(TestRetry(3));
+            }
+            it.toByteArray()
         }
     }
 }
