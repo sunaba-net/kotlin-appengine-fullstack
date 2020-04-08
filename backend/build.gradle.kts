@@ -17,11 +17,13 @@ dependencies {
     implementation(ktor("websockets"))
 
     implementation(project(":model"))
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-cbor:0.20.0")
 
+    implementation("com.google.cloud:google-cloud-tasks:1.29.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-cbor:0.20.0")
     implementation("com.google.apis:google-api-services-cloudresourcemanager:v1-rev572-1.25.0")
     implementation("com.google.cloud:google-cloud-secretmanager:1.0.0")
 }
+
 
 tasks {
     compileKotlin {
