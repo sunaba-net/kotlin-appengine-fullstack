@@ -1,11 +1,6 @@
 package net.sunaba
 
 import com.auth0.jwt.algorithms.Algorithm
-import com.google.api.client.http.javanet.NetHttpTransport
-import com.google.api.client.json.jackson2.JacksonFactory
-import com.google.api.services.appengine.v1.Appengine
-import com.google.auth.http.HttpCredentialsAdapter
-import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.secretmanager.v1.SecretManagerServiceClient
 import com.google.cloud.secretmanager.v1.SecretVersionName
 import io.ktor.application.Application
@@ -77,7 +72,7 @@ fun Application.module() {
         provider("admin") {
             pipeline.intercept(AuthenticationPipeline.CheckAuthentication) {
                 if (true != this.call.sessions.get<User>()?.admin) {
-                    call.respondRedirect(googleSignIn.path + "?continue=" + URLEncoder.encode(call.request.path()))
+                    call.respondRedirect(googleSignIn.path + "?continue=" + URLEncoder.encode(call.request.path(), "UTF-8"))
                 }
             }
         }
@@ -102,6 +97,7 @@ fun Application.module() {
 
         authenticate("admin") {
             route("admin") {
+
                 get("props") {
                     call.respond(System.getProperties().map { it.key.toString() to it.value.toString() }.toMap())
                 }

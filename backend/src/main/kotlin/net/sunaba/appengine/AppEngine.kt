@@ -83,7 +83,7 @@ object AppEngine : CoroutineScope {
         }
     }
 
-    fun isOwner(projectId: String = Env.GOOGLE_CLOUD_PROJECT.value, email: String?) = getOwners(Env.GOOGLE_CLOUD_PROJECT.value).contains("user:${email}")
+    fun isOwner(projectId: String = Env.GOOGLE_CLOUD_PROJECT.value, email: String?) = getOwners(projectId).contains("user:${email}")
 
     fun getOwners(projectId: String = Env.GOOGLE_CLOUD_PROJECT.value): List<String> {
         val resource = CloudResourceManager.Builder(NetHttpTransport(), JacksonFactory.getDefaultInstance()

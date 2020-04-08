@@ -1,5 +1,6 @@
 package net.sunaba.appengine
 
+
 import com.google.auth.oauth2.ComputeEngineCredentials
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.tasks.v2.*
@@ -19,26 +20,10 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
-import java.net.HttpURLConnection
-import java.net.URL
-import java.net.UnknownHostException
 import java.util.*
+import kotlin.random.Random
 
-private fun getMetaData(path: String, defaultValue: String): String {
-    val conn = URL("http://metadata.google.internal${path}").openConnection() as HttpURLConnection
-    conn.requestMethod = "POST"
-    conn.setRequestProperty("Metadata-Flavor", "Google")
-    return try {
-        conn.inputStream.use {
-            it.reader(Charsets.UTF_8).readText().trim().let {
-                it.split("/").last().let { it.substring(0, it.lastIndexOf('-')) }
-            }
-        }
-    } catch (ex: UnknownHostException) {
-        defaultValue
-    }
-}
-
+private const val SALT_LENGTH: Int = 8
 private const val HEADER_AUTHORIZATION = "X-Deferred-Authorization"
 typealias Signer = (taskPayload: ByteArray) -> ByteArray
 
@@ -56,16 +41,19 @@ class AppEngineDeferred(internal val config: Configuration) {
              *
              */
             val APPLICATION_DEFAULT_CREDENTIAL_SIGNER: Signer = { byteArray ->
+//                val iam = Iam.Builder(NetHttpTransport(), JacksonFactory.getDefaultInstance()
+//                        , HttpCredentialsAdapter(GoogleCredentials.getApplicationDefault())).build()
+//                val name = "projects/{PROJECT_ID}/serviceAccounts/{ACCOUNT}"
+//                iam.projects().serviceAccounts().signBlob()
                 (GoogleCredentials.getApplicationDefault() as ComputeEngineCredentials).sign(byteArray)
             }
         }
 
-        private val gcloudRegion: String by lazy { getMetaData("/computeMetadata/v1/instance/zone", "") }
         private var _region: String = GCLOUD_REGION
         var taskSigner: Signer = APPLICATION_DEFAULT_CREDENTIAL_SIGNER
 
         var region: String
-            get() = if (_region == GCLOUD_REGION) gcloudRegion else _region
+            get() = if (_region == GCLOUD_REGION) AppEngine.currentRegion!! else _region
             set(value) {
                 _region = value
             }
@@ -79,8 +67,6 @@ class AppEngineDeferred(internal val config: Configuration) {
             val feature = AppEngineDeferred(config)
             pipeline.routing {
                 post(config.path) {
-                    val body = call.request.receiveChannel().toByteArray()
-
                     val taskId = call.request.headers["X-AppEngine-TaskName"]
                     val queue = call.request.headers["X-AppEngine-QueueName"]
                     if (taskId.isNullOrEmpty() || queue.isNullOrEmpty()) {
@@ -95,6 +81,7 @@ class AppEngineDeferred(internal val config: Configuration) {
                         return@post
                     }
 
+                    val body = call.request.receiveChannel().toByteArray()
                     val sign = config.taskSigner.invoke(body)
                     val base64Sign = Base64.getEncoder().encodeToString(sign)
                     if (base64Sign != call.request.headers.get(HEADER_AUTHORIZATION)) {
@@ -102,6 +89,7 @@ class AppEngineDeferred(internal val config: Configuration) {
                         return@post
                     }
                     val deferredTask = ByteArrayInputStream(body).use {
+                        it.skip(SALT_LENGTH.toLong()) //salt
                         ObjectInputStream(it).use {
                             it.readObject()
                         }
@@ -125,6 +113,7 @@ private fun Task.verify(headers: Headers): Boolean {
 
     // headers["X-AppEngine-TaskETA"]は"1586219797.7147498"のような形式で取得できるが、Task#scheduleTimeとは誤差がある。
     // 何回か計測したところ、数ナノ秒程度の誤差だが余裕を持って5秒はOKとする
+    // 仮に失敗してもリトライされる
     if (true != headers["X-AppEngine-TaskETA"]?.let { Math.abs(it.split(".").first().toLong() - scheduleTime.seconds) < 5 }) {
         return false
     }
@@ -136,8 +125,10 @@ fun Application.deferred(task: DeferredTask, queue: String = "default", builder:
     val config = feature.config
     val path = config.path
 
-    return CloudTasksClient.create().use {
-        val body = ByteArrayOutputStream().use {
+    return CloudTasksClient.create().use { client ->
+        val salt = Random.nextBytes(SALT_LENGTH)
+        val body = ByteArrayOutputStream().use { it ->
+            it.write(salt)
             ObjectOutputStream(it).use {
                 it.writeObject(task)
             }
@@ -153,8 +144,8 @@ fun Application.deferred(task: DeferredTask, queue: String = "default", builder:
                 .setHttpMethod(HttpMethod.POST)
                 .setAppEngineRouting(AppEngineRouting.newBuilder().apply(builder))
 
-        val task = Task.newBuilder().setAppEngineHttpRequest(requestBuilder.build())
-        it.createTask(queuePath, task.build())
+        val taskBuilder = Task.newBuilder().setAppEngineHttpRequest(requestBuilder.build())
+        client.createTask(queuePath, taskBuilder.build())
     }
 }
 

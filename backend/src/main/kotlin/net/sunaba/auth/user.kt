@@ -19,15 +19,15 @@ class UserSessionSerializer(private val algorithm: Algorithm, private val issuer
         return User(jwt.subject, str("email"), bool("admin"))
     }
 
-    override fun serialize(user: User): String {
+    override fun serialize(session: User): String {
         val now = Date()
         return JWT.create().withIssuer(issuer)
                 .withIssuer(issuer)
                 .withIssuedAt(now)
                 .withExpiresAt(Date(now.time + maxAgeInSeconds * 1000))
-                .withSubject(user.id)
-                .withClaim("email", user.email)
-                .withClaim("admin", user.admin)
+                .withSubject(session.id)
+                .withClaim("email", session.email)
+                .withClaim("admin", session.admin)
                 .sign(algorithm)
     }
 }
