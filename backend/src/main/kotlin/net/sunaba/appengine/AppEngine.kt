@@ -1,10 +1,16 @@
 package net.sunaba.appengine
 
+import com.google.api.client.http.javanet.NetHttpTransport
+import com.google.api.client.json.jackson2.JacksonFactory
+import com.google.api.services.cloudresourcemanager.CloudResourceManager
+import com.google.auth.http.HttpCredentialsAdapter
+import com.google.auth.oauth2.GoogleCredentials
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import kotlinx.coroutines.*
 import kotlin.coroutines.CoroutineContext
+import kotlin.streams.toList
 
 
 object AppEngine : CoroutineScope {
@@ -51,8 +57,8 @@ object AppEngine : CoroutineScope {
         SERVICE_ACCOUNT_DEFAULT("/computeMetadata/v1/instance/service-accounts/default/"),
         SERVICE_ACCOUNT_DEFAULT_SCOPES("/computeMetadata/v1/instance/service-accounts/default/scopes");
 
-        val value:String by lazy {
-            metaData[this]?:""
+        val value: String by lazy {
+            metaData[this] ?: ""
         }
     }
 
@@ -76,4 +82,30 @@ object AppEngine : CoroutineScope {
             it.split("/").last().let { it.substring(0, it.lastIndexOf('-')) }
         }
     }
+
+    fun isOwner(projectId: String = Env.GOOGLE_CLOUD_PROJECT.value, email: String?) = getOwners(Env.GOOGLE_CLOUD_PROJECT.value).contains("user:${email}")
+
+    fun getOwners(projectId: String = Env.GOOGLE_CLOUD_PROJECT.value): List<String> {
+        val resource = CloudResourceManager.Builder(NetHttpTransport(), JacksonFactory.getDefaultInstance()
+                , HttpCredentialsAdapter(GoogleCredentials.getApplicationDefault())).build()
+
+        return resource.projects().getIamPolicy(projectId, null).execute().bindings
+                .filter { it.role == "roles/owner" }.flatMap { it.members }
+    }
+
+    /**
+     * メールアドレスがキーで、ロールのSetがバリューのマップを返す
+     * @param projectId プロジェクトID
+     * @param userOnly プレフィックスが"user:"で始まるアカウントのみを対象とする
+     * @return メールアドレスがキーで、ロールのSetがバリューのマップを返す
+     */
+    fun getRoles(projectId: String = Env.GOOGLE_CLOUD_PROJECT.value, userOnly: Boolean = true): Map<String, Set<String>> {
+        val resource = CloudResourceManager.Builder(NetHttpTransport(), JacksonFactory.getDefaultInstance()
+                , HttpCredentialsAdapter(GoogleCredentials.getApplicationDefault())).build()
+
+        return resource.projects().getIamPolicy(projectId, null).execute().bindings
+                .flatMap { binding -> binding.members.stream().filter { !userOnly || it.startsWith("user:") }.map { it!! to binding.role!! }.toList() }
+                .groupBy({ it.first }, { it.second }).map { it.key to it.value.toSet() }.toMap()
+    }
+
 }

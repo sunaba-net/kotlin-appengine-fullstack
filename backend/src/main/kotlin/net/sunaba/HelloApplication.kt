@@ -4,7 +4,6 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.services.appengine.v1.Appengine
-import com.google.api.services.cloudresourcemanager.CloudResourceManager
 import com.google.auth.http.HttpCredentialsAdapter
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.secretmanager.v1.SecretManagerServiceClient
@@ -40,33 +39,6 @@ import net.sunaba.auth.*
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.net.URLEncoder
-import kotlin.streams.toList
-
-fun isOwner(email: String?) = getOwners("ktor-sunaba").contains("user:${email}")
-
-fun getOwners(projectId: String): List<String> {
-    val resource = CloudResourceManager.Builder(NetHttpTransport(), JacksonFactory.getDefaultInstance()
-            , HttpCredentialsAdapter(GoogleCredentials.getApplicationDefault())).build()
-
-    return resource.projects().getIamPolicy(projectId, null).execute().bindings
-            .filter { it.role == "roles/owner" }.flatMap { it.members }
-}
-
-/**
- * メールアドレスがキーで、ロールのSetがバリューのマップを返す
- * @param projectId プロジェクトID
- * @param userOnly プレフィックスが"user:"で始まるアカウントのみを対象とする
- * @return メールアドレスがキーで、ロールのSetがバリューのマップを返す
- */
-fun getRoles(projectId: String, userOnly: Boolean = true): Map<String, Set<String>> {
-    val resource = CloudResourceManager.Builder(NetHttpTransport(), JacksonFactory.getDefaultInstance()
-            , HttpCredentialsAdapter(GoogleCredentials.getApplicationDefault())).build()
-
-
-    return resource.projects().getIamPolicy(projectId, null).execute().bindings
-            .flatMap { binding -> binding.members.stream().filter { !userOnly || it.startsWith("user:") }.map { it!! to binding.role!! }.toList() }
-            .groupBy({ it.first }, { it.second }).map { it.key to it.value.toSet() }.toMap()
-}
 
 
 fun main() {
@@ -103,15 +75,6 @@ fun Application.module() {
         it.accessSecretVersion(SecretVersionName.of("ktor-sunaba", "session-user-secret", "latest")).payload.data.toStringUtf8()
     }
 
-    val googleSignIn = easyGoogleSignInConfig {
-        clientId = "509057577460-efnp64l74ech7bmbs44oerb67mtkishc.apps.googleusercontent.com"
-        onLoginAction = { jwt ->
-            val email = jwt.payload.claims["email"]!!.asString()
-            this.sessions.set(User(jwt.payload.subject, email, isOwner(email)))
-            true
-        }
-    }
-
     install(Sessions) {
         cookie<User>("app-user-session") {
             cookie.maxAgeInSeconds = 60 * 60
@@ -122,12 +85,20 @@ fun Application.module() {
         }
     }
 
+    val googleSignIn = GoogleSignInConfig("509057577460-efnp64l74ech7bmbs44oerb67mtkishc.apps.googleusercontent.com").apply {
+        onLoginAction = { jwt ->
+            val email = jwt.payload.claims["email"]!!.asString()
+            this.sessions.set(User(jwt.payload.subject, email, AppEngine.isOwner("ktor-sunaba", email)))
+            true
+        }
+    }
+
     install(Authentication) {
         register(googleSignIn)
         provider("admin") {
             pipeline.intercept(AuthenticationPipeline.CheckAuthentication) {
                 if (true != this.call.sessions.get<User>()?.admin) {
-                    call.respondRedirect(googleSignIn.loginPath + "?continue=" + URLEncoder.encode(call.request.path()))
+                    call.respondRedirect(googleSignIn.path + "?continue=" + URLEncoder.encode(call.request.path()))
                 }
             }
         }
@@ -160,6 +131,7 @@ fun Application.module() {
 
     routing {
         installEasyGoogleSignIn(googleSignIn)
+
         authenticate("admin") {
             route("admin") {
                 get("props") {
