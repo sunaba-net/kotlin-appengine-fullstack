@@ -22,7 +22,13 @@ import io.ktor.response.respondText
 import io.ktor.routing.Routing
 import io.ktor.routing.get
 import io.ktor.routing.post
+import io.ktor.sessions.CookieConfiguration
+import io.ktor.sessions.SessionSerializer
+import io.ktor.sessions.Sessions
+import io.ktor.sessions.cookie
 import io.ktor.util.date.GMTDate
+import kotlinx.serialization.Serializable
+import net.sunaba.appengine.AppEngine
 import java.net.URL
 import java.net.URLEncoder
 import java.util.*
@@ -159,6 +165,7 @@ fun Routing.installEasyGoogleSignIn(config: EasyGoogleSignInProvider.Configurati
 </head>
 <body>
 <div class="g-signin2" data-onsuccess="onSignIn" data-theme="dark"></div>
+<div id="status-text">test</div>
 <script>
     function onSignIn(googleUser) {
         // The ID token you need to pass to your backend:
@@ -187,7 +194,7 @@ fun Routing.installEasyGoogleSignIn(config: EasyGoogleSignInProvider.Configurati
 }
 
 
-class CustomClaimer(val builder: JWTCreator.Builder) {
+class CustomClaimer(private val builder: JWTCreator.Builder) {
     fun withClaim(name: String, value: Boolean): CustomClaimer = apply { builder.withClaim(name, value) }
     fun withClaim(name: String, value: Int): CustomClaimer = apply { builder.withClaim(name, value) }
     fun withClaim(name: String, value: Long): CustomClaimer = apply { builder.withClaim(name, value) }
@@ -203,3 +210,41 @@ class EasyLoginPrincipal(val jwt: DecodedJWT) : Principal
 
 val EasyLoginPrincipal.email
     get() = jwt.claims.get("email")!!.asString()
+
+@Serializable
+data class User(val id: String, val email: String, var admin: Boolean = false)
+
+class UserSessionSerializer(val algorithm: Algorithm, val issuer: String = "App Issuer", val maxAgeInSeconds: Long = 60 * 60) : SessionSerializer<User> {
+    override fun deserialize(text: String): User {
+        val jwt = JWT.require(algorithm)
+                .withIssuer(issuer)
+                .build()
+                .verify(text)
+
+        fun str(key: String) = jwt.claims[key]!!.asString()
+        fun bool(key: String) = jwt.claims[key]!!.asBoolean()
+        return User(jwt.subject, str("email"), bool("admin"))
+    }
+
+    override fun serialize(user: User): String {
+        val now = Date()
+        return JWT.create().withIssuer(issuer)
+                .withIssuer(issuer)
+                .withIssuedAt(now)
+                .withExpiresAt(Date(now.time + maxAgeInSeconds * 1000))
+                .withSubject(user.id)
+                .withClaim("email", user.email)
+                .withClaim("admin", user.admin)
+                .sign(algorithm)
+    }
+}
+
+fun Sessions.Configuration.installEasyLogin(config: EasyGoogleSignInProvider.Configuration) {
+    cookie<User>(config.cookieName) {
+        cookie.maxAgeInSeconds = 60 * 60
+        cookie.httpOnly = true
+        cookie.secure = AppEngine.isServiceEnv
+        cookie.path = "/"
+        serializer = UserSessionSerializer(config.algorithm, maxAgeInSeconds = cookie.maxAgeInSeconds)
+    }
+}
