@@ -5,6 +5,7 @@ import com.google.auth.oauth2.ComputeEngineCredentials
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.tasks.v2.*
 import com.google.protobuf.ByteString
+import com.google.protobuf.Timestamp
 import io.ktor.application.Application
 import io.ktor.application.ApplicationFeature
 import io.ktor.application.call
@@ -20,8 +21,10 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
+import java.sql.Time
 import java.util.*
 import kotlin.random.Random
+import kotlin.time.minutes
 
 private const val SALT_LENGTH: Int = 8
 private const val HEADER_AUTHORIZATION = "X-Deferred-Authorization"
@@ -120,7 +123,14 @@ private fun Task.verify(headers: Headers): Boolean {
     return true
 }
 
-fun Application.deferred(task: DeferredTask, queue: String = "default", builder: AppEngineRouting.Builder.() -> Unit = {}): Task {
+val SCHEDULE_IMMEDIATE: Date = Date(0L)
+
+private fun Date.toTimestamp(): Timestamp = Timestamp.newBuilder()
+        .setSeconds(time / 1000)
+        .setNanos(1000 * (time % 1000).toInt()).build()
+
+fun Application.deferred(task: DeferredTask, queue: String = "default", service: String = "default"
+                         , scheduleTime: Date = SCHEDULE_IMMEDIATE): Task {
     val feature = feature(AppEngineDeferred)
     val config = feature.config
     val path = config.path
@@ -142,11 +152,15 @@ fun Application.deferred(task: DeferredTask, queue: String = "default", builder:
                 .setBody(ByteString.copyFrom(body))
                 .putHeaders(HEADER_AUTHORIZATION, base64Sign)
                 .setHttpMethod(HttpMethod.POST)
-                .setAppEngineRouting(AppEngineRouting.newBuilder().apply(builder))
+                .setAppEngineRouting(AppEngineRouting.newBuilder().setService(service))
 
-        val taskBuilder = Task.newBuilder().setAppEngineHttpRequest(requestBuilder.build())
+        val taskBuilder = Task.newBuilder()
+                .setAppEngineHttpRequest(requestBuilder.build())
+        if (scheduleTime != SCHEDULE_IMMEDIATE) {
+            taskBuilder.setScheduleTime(scheduleTime.toTimestamp())
+        }
         client.createTask(queuePath, taskBuilder.build())
     }
+
+
 }
-
-

@@ -26,14 +26,12 @@ import io.ktor.serialization.serialization
 import io.ktor.sessions.*
 import kotlinx.serialization.cbor.Cbor
 import kotlinx.serialization.json.JsonConfiguration
-import net.sunaba.appengine.AppEngine
-import net.sunaba.appengine.AppEngineDeferred
-import net.sunaba.appengine.TestRetry
-import net.sunaba.appengine.deferred
+import net.sunaba.appengine.*
 import net.sunaba.auth.*
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.net.URLEncoder
+import java.util.*
 
 fun Application.module() {
     val gcpProjectId = if (AppEngine.isServiceEnv) AppEngine.Env.GOOGLE_CLOUD_PROJECT.value else "ktor-sunaba"
@@ -116,6 +114,12 @@ fun Application.module() {
 
                 get("/tasks/add") {
                     call.respondText(deferred(TestRetry(3)).name)
+
+                }
+
+                get("/tasks/add2") {
+                    call.respondText(deferred(TestRetry(3)
+                            , scheduleTime = Date(Date().time + 60 * 1000)).name)
                 }
             }
         }
