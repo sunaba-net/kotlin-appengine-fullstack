@@ -18,6 +18,8 @@ import io.ktor.routing.get
 import io.ktor.routing.post
 import java.net.URL
 
+fun googleSignInConfig(clientId:String, configure:GoogleSignInConfig.()->Unit) = GoogleSignInConfig(clientId).apply(configure)
+
 class GoogleSignInConfig(val clientId: String) {
     var authName: String = "google-auth"
     var path: String = "/__login"
@@ -37,7 +39,7 @@ fun Authentication.Configuration.register(config: GoogleSignInConfig) {
     }
 }
 
-fun Routing.installEasyGoogleSignIn(config: GoogleSignInConfig) {
+fun Routing.installLogin(config: GoogleSignInConfig) {
 
     get(config.path) {
         call.respondText("""<html lang="en">

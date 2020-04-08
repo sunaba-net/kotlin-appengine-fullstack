@@ -40,39 +40,18 @@ import java.io.PrintWriter
 import java.io.StringWriter
 import java.net.URLEncoder
 
-
-fun main() {
-
-    val appenigne = Appengine.Builder(NetHttpTransport(), JacksonFactory.getDefaultInstance()
-            , HttpCredentialsAdapter(GoogleCredentials.getApplicationDefault())).build()
-
-    val app = appenigne.apps().get("ktor-sunaba").execute()
-
-    println(app.iap.oauth2ClientId)
-    println(app.iap.oauth2ClientSecret)
-
-    SecretManagerServiceClient.create().use { client ->
-
-        client.listSecrets("projects/ktor-sunaba").iterateAll().forEach {
-            println(it)
-        }
-
-    }
-}
-
 fun Application.module() {
+    val gcpProjectId = if (AppEngine.isServiceEnv) AppEngine.Env.GOOGLE_CLOUD_PROJECT.value else "ktor-sunaba"
+
     install(ContentNegotiation) {
         json(JsonConfiguration.Stable)
         serialization(ContentType.Application.Cbor, Cbor())
     }
-    install(AppEngineDeferred) {
-//        projectId = "ktor-sunaba"
-//        this.region = "asia-northeast1"
-    }
+    install(AppEngineDeferred) {}
 
     //get secretKey from secret manager
     val secretKey = SecretManagerServiceClient.create().use {
-        it.accessSecretVersion(SecretVersionName.of("ktor-sunaba", "session-user-secret", "latest")).payload.data.toStringUtf8()
+        it.accessSecretVersion(SecretVersionName.of(gcpProjectId, "session-user-secret", "latest")).payload.data.toStringUtf8()
     }
 
     install(Sessions) {
@@ -85,10 +64,10 @@ fun Application.module() {
         }
     }
 
-    val googleSignIn = GoogleSignInConfig("509057577460-efnp64l74ech7bmbs44oerb67mtkishc.apps.googleusercontent.com").apply {
+    val googleSignIn = googleSignInConfig("509057577460-efnp64l74ech7bmbs44oerb67mtkishc.apps.googleusercontent.com") {
         onLoginAction = { jwt ->
             val email = jwt.payload.claims["email"]!!.asString()
-            this.sessions.set(User(jwt.payload.subject, email, AppEngine.isOwner("ktor-sunaba", email)))
+            sessions.set(User(jwt.payload.subject, email, AppEngine.isOwner(gcpProjectId, email)))
             true
         }
     }
@@ -116,21 +95,10 @@ fun Application.module() {
         }
     }
 
-    install(StatusPages) {
-        exception<Throwable> { cause ->
-            StringWriter().use {
-                PrintWriter(it).use {
-                    cause.printStackTrace(it)
-                }
-                val stackTrace = it.buffer.toString()
-                call.respondText("<h1>Internal Error</h1><pre>${stackTrace}</pre>", ContentType.Text.Html)
-            }
-            throw cause
-        }
-    }
+    installStatusPageFeature()
 
     routing {
-        installEasyGoogleSignIn(googleSignIn)
+        installLogin(googleSignIn)
 
         authenticate("admin") {
             route("admin") {
@@ -189,5 +157,20 @@ fun Application.module() {
             default("$staticPath/index.html")
         }
 
+    }
+}
+
+private fun Application.installStatusPageFeature() {
+    install(StatusPages) {
+        exception<Throwable> { cause ->
+            StringWriter().use {
+                PrintWriter(it).use {
+                    cause.printStackTrace(it)
+                }
+                val stackTrace = it.buffer.toString()
+                call.respondText("<h1>Internal Error</h1><pre>${stackTrace}</pre>", ContentType.Text.Html)
+            }
+            throw cause
+        }
     }
 }
