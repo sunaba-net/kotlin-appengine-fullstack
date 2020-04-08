@@ -3,48 +3,43 @@ package net.sunaba
 import com.auth0.jwt.algorithms.Algorithm
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.jackson2.JacksonFactory
+import com.google.api.services.appengine.v1.Appengine
 import com.google.api.services.cloudresourcemanager.CloudResourceManager
 import com.google.auth.http.HttpCredentialsAdapter
 import com.google.auth.oauth2.GoogleCredentials
+import com.google.cloud.secretmanager.v1.SecretManagerServiceClient
+import com.google.cloud.secretmanager.v1.SecretVersionName
 import io.ktor.application.Application
 import io.ktor.application.call
 import io.ktor.application.install
 import io.ktor.auth.Authentication
+import io.ktor.auth.AuthenticationPipeline
 import io.ktor.auth.authenticate
 import io.ktor.features.*
 import io.ktor.http.ContentType
-import io.ktor.http.cio.websocket.CloseReason
-import io.ktor.http.cio.websocket.Frame
-import io.ktor.http.cio.websocket.close
-import io.ktor.http.cio.websocket.readText
 import io.ktor.http.content.default
 import io.ktor.http.content.files
 import io.ktor.http.content.static
+import io.ktor.request.path
 import io.ktor.response.respond
+import io.ktor.response.respondRedirect
 import io.ktor.response.respondText
 import io.ktor.routing.get
 import io.ktor.routing.route
 import io.ktor.routing.routing
 import io.ktor.serialization.json
 import io.ktor.serialization.serialization
-import io.ktor.websocket.WebSocketServerSession
-import io.ktor.websocket.WebSockets
-import io.ktor.websocket.webSocket
-import kotlinx.serialization.PolymorphicSerializer
+import io.ktor.sessions.*
 import kotlinx.serialization.cbor.Cbor
 import kotlinx.serialization.json.JsonConfiguration
-import model.IntMessage
-import model.Message
-import model.StringMessage
 import net.sunaba.appengine.AppEngine
 import net.sunaba.appengine.AppEngineDeferred
 import net.sunaba.appengine.TestRetry
 import net.sunaba.appengine.deferred
-import net.sunaba.auth.easyGoogleSignInConfig
-import net.sunaba.auth.installEasyGoogleSignIn
-import net.sunaba.auth.register
+import net.sunaba.auth.*
 import java.io.PrintWriter
 import java.io.StringWriter
+import java.net.URLEncoder
 import kotlin.streams.toList
 
 fun isOwner(email: String?) = getOwners("ktor-sunaba").contains("user:${email}")
@@ -67,9 +62,30 @@ fun getRoles(projectId: String, userOnly: Boolean = true): Map<String, Set<Strin
     val resource = CloudResourceManager.Builder(NetHttpTransport(), JacksonFactory.getDefaultInstance()
             , HttpCredentialsAdapter(GoogleCredentials.getApplicationDefault())).build()
 
+
     return resource.projects().getIamPolicy(projectId, null).execute().bindings
             .flatMap { binding -> binding.members.stream().filter { !userOnly || it.startsWith("user:") }.map { it!! to binding.role!! }.toList() }
             .groupBy({ it.first }, { it.second }).map { it.key to it.value.toSet() }.toMap()
+}
+
+
+fun main() {
+
+    val appenigne = Appengine.Builder(NetHttpTransport(), JacksonFactory.getDefaultInstance()
+            , HttpCredentialsAdapter(GoogleCredentials.getApplicationDefault())).build()
+
+    val app = appenigne.apps().get("ktor-sunaba").execute()
+
+    println(app.iap.oauth2ClientId)
+    println(app.iap.oauth2ClientSecret)
+
+    SecretManagerServiceClient.create().use { client ->
+
+        client.listSecrets("projects/ktor-sunaba").iterateAll().forEach {
+            println(it)
+        }
+
+    }
 }
 
 fun Application.module() {
@@ -82,19 +98,39 @@ fun Application.module() {
 //        this.region = "asia-northeast1"
     }
 
-    install(WebSockets)
+    //get secretKey from secret manager
+    val secretKey = SecretManagerServiceClient.create().use {
+        it.accessSecretVersion(SecretVersionName.of("ktor-sunaba", "session-user-secret", "latest")).payload.data.toStringUtf8()
+    }
 
-    val googleSignIn = easyGoogleSignInConfig("admin") {
+    val googleSignIn = easyGoogleSignInConfig {
         clientId = "509057577460-efnp64l74ech7bmbs44oerb67mtkishc.apps.googleusercontent.com"
-        algorithm = Algorithm.HMAC256("my-special-secret-key")
-        secureCookie = AppEngine.isServiceEnv
-        validate { credential ->
-            isOwner(credential.payload.getClaim("email")?.asString())
+        onLoginAction = { jwt ->
+            val email = jwt.payload.claims["email"]!!.asString()
+            this.sessions.set(User(jwt.payload.subject, email, isOwner(email)))
+            true
+        }
+    }
+
+    install(Sessions) {
+        cookie<User>("app-user-session") {
+            cookie.maxAgeInSeconds = 60 * 60
+            cookie.httpOnly = true
+            cookie.secure = AppEngine.isServiceEnv
+            cookie.path = "/"
+            serializer = UserSessionSerializer(Algorithm.HMAC256(secretKey), maxAgeInSeconds = cookie.maxAgeInSeconds)
         }
     }
 
     install(Authentication) {
         register(googleSignIn)
+        provider("admin") {
+            pipeline.intercept(AuthenticationPipeline.CheckAuthentication) {
+                if (true != this.call.sessions.get<User>()?.admin) {
+                    call.respondRedirect(googleSignIn.loginPath + "?continue=" + URLEncoder.encode(call.request.path()))
+                }
+            }
+        }
     }
 
     //ローカルで実行時はfrontendからのCORSを有効化する
@@ -122,13 +158,9 @@ fun Application.module() {
         }
     }
 
-    val sessions = arrayListOf<WebSocketServerSession>()
-
     routing {
-
         installEasyGoogleSignIn(googleSignIn)
-
-        authenticate(googleSignIn.name) {
+        authenticate("admin") {
             route("admin") {
                 get("props") {
                     call.respond(System.getProperties().map { it.key.toString() to it.value.toString() }.toMap())
@@ -185,66 +217,5 @@ fun Application.module() {
             default("$staticPath/index.html")
         }
 
-        webSocket("/chat") {
-            println("session start")
-            sessions.add(this)
-            for (frame in incoming) {
-                when (frame) {
-                    is Frame.Text -> {
-                        val text = frame.readText()
-
-//                        sessions.forEach {
-//                            it.outgoing.send(Frame.Text("YOU SAID: $text"))
-//                        }
-
-                        if (text.equals("bye", ignoreCase = true)) {
-                            close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
-                        }
-                    }
-                }
-            }
-            sessions.remove(this)
-            println("session end")
-        }
-
-        get("/chat_server") {
-//            val appengine = Appengine.Builder(NetHttpTransport(), JacksonFactory.getDefaultInstance()
-//                    , HttpCredentialsAdapter(GoogleCredentials.getApplicationDefault())).build()
-//            val service = appengine.apps().services().get(AppEngine.Env.GOOGLE_CLOUD_PROJECT.name, "chat")
-//                    .execute()
-//            appengine.apps().services().versions().list("", "").execute()
-        }
-
-        get("/hello") {
-            call.respondText { "hello" }
-
-            val cbor = Cbor(context = model.module)
-            val serializer = PolymorphicSerializer(Message::class)
-            val msg = when ((Math.random() * 2).toInt()) {
-                0 -> IntMessage(123)
-                else -> StringMessage("Hello Kotlin")
-            }
-            val frame = Frame.Binary(true, cbor.dump(serializer, msg))
-
-            sessions.forEach {
-                it.outgoing.send(frame)
-            }
-        }
     }
 }
-
-//suspend fun main() {
-//    val http = HttpClient()
-//    http.post<String>("https://ktor.sunaba.net/queue/__deferred__") {
-//
-//        headers {
-//            append("X-AppEngine-QueueName", "default")
-//        }
-//        body = ByteArrayOutputStream().use {
-//            ObjectOutputStream(it).use {
-//                it.writeObject(TestRetry(3));
-//            }
-//            it.toByteArray()
-//        }
-//    }
-//}

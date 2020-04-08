@@ -26,6 +26,8 @@ dependencies {
 
     implementation("com.google.apis:google-api-services-appengine:v1-rev20200215-1.30.9")
     implementation("com.google.apis:google-api-services-cloudresourcemanager:v1-rev572-1.25.0")
+
+    implementation("com.google.cloud:google-cloud-secretmanager:1.0.0")
 //
 //    implementation("com.google.apis:google-api-services-iam:v1-rev20200221-1.30.9")
 //    implementation("org.shredzone.acme4j:acme4j-client:2.9")
