@@ -20,7 +20,7 @@ import java.net.URL
 
 fun googleSignInConfig(clientId:String, configure:GoogleSignInConfig.()->Unit) = GoogleSignInConfig(clientId).apply(configure)
 
-class GoogleSignInConfig(val clientId: String) {
+class GoogleSignInConfig internal constructor(val clientId: String) {
     var authName: String = "google-auth"
     var path: String = "/__login"
     var onLoginAction: ApplicationCall.(jwt: JWTPrincipal) -> Boolean = { true }

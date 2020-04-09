@@ -1,6 +1,8 @@
 package net.sunaba
 
 import com.auth0.jwt.algorithms.Algorithm
+import com.google.auth.oauth2.ComputeEngineCredentials
+import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.secretmanager.v1.SecretManagerServiceClient
 import com.google.cloud.secretmanager.v1.SecretVersionName
 import io.ktor.application.Application
@@ -32,6 +34,7 @@ import java.io.PrintWriter
 import java.io.StringWriter
 import java.net.URLEncoder
 import java.util.*
+import kotlin.random.Random
 
 fun Application.module() {
     val gcpProjectId = if (AppEngine.isServiceEnv) AppEngine.Env.GOOGLE_CLOUD_PROJECT.value else "ktor-sunaba"
@@ -120,6 +123,12 @@ fun Application.module() {
                 get("/tasks/add2") {
                     call.respondText(deferred(TestRetry(3)
                             , scheduleTime = Date(Date().time + 60 * 1000)).name)
+                }
+
+                get("signTest") {
+                    val byteArray = Random.nextBytes(200)
+                    val sign = (GoogleCredentials.getApplicationDefault() as ComputeEngineCredentials).sign(byteArray)
+                    println(Base64.getEncoder().encodeToString(sign))
                 }
             }
         }
