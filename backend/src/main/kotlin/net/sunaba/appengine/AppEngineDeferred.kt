@@ -21,9 +21,9 @@ import java.io.ObjectOutputStream
 import java.util.*
 import kotlin.random.Random
 
+
 private const val TOKEN_BYTES: Int = 64
 private const val HEADER_TOKEN = "X-Deferred-Token"
-typealias Signer = (taskPayload: ByteArray) -> ByteArray
 
 class AppEngineDeferred(internal val config: Configuration) {
 
@@ -34,6 +34,7 @@ class AppEngineDeferred(internal val config: Configuration) {
             // Acquisition of metadata is costly, so delay acquisition
             const val GCLOUD_REGION: String = "__GCLOUD_REGION__"
         }
+
         private var _region: String = GCLOUD_REGION
 
         var region: String
@@ -41,6 +42,14 @@ class AppEngineDeferred(internal val config: Configuration) {
             set(value) {
                 _region = value
             }
+
+        private val CLIENT_INSTANCE: CloudTasksClient by lazy {
+            CloudTasksClient.create()
+        }
+
+        var cloudTasksClientProvider: () -> CloudTasksClient = {
+            CLIENT_INSTANCE
+        }
     }
 
     companion object Feature : ApplicationFeature<Application, Configuration, AppEngineDeferred> {
@@ -59,10 +68,8 @@ class AppEngineDeferred(internal val config: Configuration) {
                     }
 
                     val taskName = TaskName.format(config.projectId, config.region, queue, taskId)
-                    val task = CloudTasksClient.create().use {
-                        // Basic View: omits task body
-                        it.getTask(GetTaskRequest.newBuilder().setName(taskName).setResponseView(Task.View.BASIC).build())
-                    }
+                    val basicTaskRequest = GetTaskRequest.newBuilder().setName(taskName).setResponseView(Task.View.BASIC).build()
+                    val task = config.cloudTasksClientProvider().getTask(basicTaskRequest)
                     if (task == null || !task.verify(call.request.headers)) {
                         call.respond(HttpStatusCode.Unauthorized, "Invalid Task")
                         return@post
@@ -100,29 +107,27 @@ fun Application.deferred(task: DeferredTask, queue: String = "default", service:
     val config = feature.config
     val path = config.path
 
-    return CloudTasksClient.create().use { client ->
-        val body = ByteArrayOutputStream().use { it ->
-            ObjectOutputStream(it).use {
-                it.writeObject(task)
-            }
-            it.toByteArray()
-        }
-        val random = Base64.getEncoder().encodeToString(Random.nextBytes(TOKEN_BYTES))
-        val queuePath = QueueName.of(config.projectId, config.region, queue)
-        val requestBuilder = AppEngineHttpRequest.newBuilder()
-                .setRelativeUri(path)
-                .setBody(ByteString.copyFrom(body))
-                .putHeaders(HEADER_TOKEN, random)
-                .setHttpMethod(HttpMethod.POST)
-                .setAppEngineRouting(AppEngineRouting.newBuilder().setService(service))
 
-        val taskBuilder = Task.newBuilder()
-                .setAppEngineHttpRequest(requestBuilder.build())
-        if (scheduleTime != SCHEDULE_IMMEDIATE) {
-            taskBuilder.setScheduleTime(scheduleTime.toTimestamp())
+    val body = ByteArrayOutputStream().use { it ->
+        ObjectOutputStream(it).use {
+            it.writeObject(task)
         }
-        client.createTask(queuePath, taskBuilder.build())
+        it.toByteArray()
+    }
+    val random = Base64.getEncoder().encodeToString(Random.nextBytes(TOKEN_BYTES))
+    val queuePath = QueueName.of(config.projectId, config.region, queue)
+    val requestBuilder = AppEngineHttpRequest.newBuilder()
+            .setRelativeUri(path)
+            .setBody(ByteString.copyFrom(body))
+            .putHeaders(HEADER_TOKEN, random)
+            .setHttpMethod(HttpMethod.POST)
+            .setAppEngineRouting(AppEngineRouting.newBuilder().setService(service))
+
+    val taskBuilder = Task.newBuilder()
+            .setAppEngineHttpRequest(requestBuilder.build())
+    if (scheduleTime != SCHEDULE_IMMEDIATE) {
+        taskBuilder.setScheduleTime(scheduleTime.toTimestamp())
     }
 
-
+    return config.cloudTasksClientProvider().createTask(queuePath, taskBuilder.build())
 }
