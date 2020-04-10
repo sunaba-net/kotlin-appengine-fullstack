@@ -4,16 +4,15 @@ package net.sunaba.appengine
 import com.google.cloud.tasks.v2.*
 import com.google.protobuf.ByteString
 import com.google.protobuf.Timestamp
-import io.ktor.application.Application
-import io.ktor.application.ApplicationFeature
-import io.ktor.application.call
-import io.ktor.application.feature
+import io.ktor.application.*
 import io.ktor.http.Headers
 import io.ktor.http.HttpStatusCode
 import io.ktor.response.respond
 import io.ktor.routing.post
 import io.ktor.routing.routing
+import io.ktor.server.engine.EnginePipeline
 import io.ktor.util.AttributeKey
+import io.ktor.util.pipeline.intercept
 import io.ktor.utils.io.jvm.javaio.toInputStream
 import java.io.ByteArrayOutputStream
 import java.io.ObjectInputStream
@@ -33,6 +32,9 @@ class AppEngineDeferred(internal val config: Configuration) {
         companion object {
             // Acquisition of metadata is costly, so delay acquisition
             const val GCLOUD_REGION: String = "__GCLOUD_REGION__"
+            private val CLIENT_INSTANCE: CloudTasksClient by lazy {
+                CloudTasksClient.create()
+            }
         }
 
         private var _region: String = GCLOUD_REGION
@@ -42,10 +44,6 @@ class AppEngineDeferred(internal val config: Configuration) {
             set(value) {
                 _region = value
             }
-
-        private val CLIENT_INSTANCE: CloudTasksClient by lazy {
-            CloudTasksClient.create()
-        }
 
         var cloudTasksClientProvider: () -> CloudTasksClient = {
             CLIENT_INSTANCE
