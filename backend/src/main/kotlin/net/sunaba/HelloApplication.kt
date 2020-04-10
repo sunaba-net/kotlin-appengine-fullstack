@@ -3,6 +3,7 @@ package net.sunaba
 import com.auth0.jwt.algorithms.Algorithm
 import com.google.auth.oauth2.ComputeEngineCredentials
 import com.google.auth.oauth2.GoogleCredentials
+import com.google.auth.oauth2.ServiceAccountCredentials
 import com.google.cloud.secretmanager.v1.SecretManagerServiceClient
 import com.google.cloud.secretmanager.v1.SecretVersionName
 import io.ktor.application.Application
@@ -13,6 +14,8 @@ import io.ktor.auth.AuthenticationPipeline
 import io.ktor.auth.authenticate
 import io.ktor.features.*
 import io.ktor.http.ContentType
+import io.ktor.http.CookieEncoding
+import io.ktor.http.cio.websocket.*
 import io.ktor.http.content.default
 import io.ktor.http.content.files
 import io.ktor.http.content.static
@@ -26,6 +29,8 @@ import io.ktor.routing.routing
 import io.ktor.serialization.json
 import io.ktor.serialization.serialization
 import io.ktor.sessions.*
+import io.ktor.websocket.WebSockets
+import io.ktor.websocket.webSocket
 import kotlinx.serialization.cbor.Cbor
 import kotlinx.serialization.json.JsonConfiguration
 import net.sunaba.appengine.*
@@ -56,6 +61,7 @@ fun Application.module() {
             cookie.httpOnly = true
             cookie.secure = AppEngine.isServiceEnv
             cookie.path = "/"
+            cookie.encoding = CookieEncoding.RAW
             serializer = UserSessionSerializer(Algorithm.HMAC256(secretKey), maxAgeInSeconds = cookie.maxAgeInSeconds)
         }
     }
@@ -93,8 +99,24 @@ fun Application.module() {
 
     installStatusPageFeature()
 
+    install(WebSockets)
+
     routing {
         installLogin(googleSignIn)
+
+        webSocket("echo") {
+            for (frame in incoming) {
+                when (frame) {
+                    is Frame.Text -> {
+                        val text = frame.readText()
+                        outgoing.send(Frame.Text("YOU SAID: $text"))
+                        if (text.equals("bye", ignoreCase = true)) {
+                            close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
+                        }
+                    }
+                }
+            }
+        }
 
         authenticate("admin") {
             route("admin") {
@@ -125,11 +147,6 @@ fun Application.module() {
                             , scheduleTime = Date(Date().time + 60 * 1000)).name)
                 }
 
-                get("signTest") {
-                    val byteArray = Random.nextBytes(200)
-                    val sign = (GoogleCredentials.getApplicationDefault() as ComputeEngineCredentials).sign(byteArray)
-                    println(Base64.getEncoder().encodeToString(sign))
-                }
             }
         }
 
@@ -165,6 +182,8 @@ fun Application.module() {
             files("$staticPath")
             default("$staticPath/index.html")
         }
+
+
 
     }
 }
