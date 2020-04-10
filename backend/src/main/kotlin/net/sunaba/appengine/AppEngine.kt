@@ -1,6 +1,6 @@
 package net.sunaba.appengine
 
-import com.google.api.client.http.javanet.NetHttpTransport
+
 import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.services.cloudresourcemanager.CloudResourceManager
 import com.google.auth.http.HttpCredentialsAdapter
@@ -9,6 +9,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import kotlinx.coroutines.*
+import net.sunaba.gogleapis.DefaultHttpTransportFactory
 import kotlin.coroutines.CoroutineContext
 import kotlin.streams.toList
 
@@ -86,7 +87,7 @@ object AppEngine : CoroutineScope {
     fun isOwner(projectId: String = Env.GOOGLE_CLOUD_PROJECT.value, email: String?) = getOwners(projectId).contains("user:${email}")
 
     fun getOwners(projectId: String = Env.GOOGLE_CLOUD_PROJECT.value): List<String> {
-        val resource = CloudResourceManager.Builder(NetHttpTransport(), JacksonFactory.getDefaultInstance()
+        val resource = CloudResourceManager.Builder(DefaultHttpTransportFactory.transport, JacksonFactory.getDefaultInstance()
                 , HttpCredentialsAdapter(GoogleCredentials.getApplicationDefault())).build()
 
         return resource.projects().getIamPolicy(projectId, null).execute().bindings
@@ -100,7 +101,7 @@ object AppEngine : CoroutineScope {
      * @return メールアドレスがキーで、ロールのSetがバリューのマップを返す
      */
     fun getRoles(projectId: String = Env.GOOGLE_CLOUD_PROJECT.value, userOnly: Boolean = true): Map<String, Set<String>> {
-        val resource = CloudResourceManager.Builder(NetHttpTransport(), JacksonFactory.getDefaultInstance()
+        val resource = CloudResourceManager.Builder(DefaultHttpTransportFactory.transport, JacksonFactory.getDefaultInstance()
                 , HttpCredentialsAdapter(GoogleCredentials.getApplicationDefault())).build()
 
         return resource.projects().getIamPolicy(projectId, null).execute().bindings
