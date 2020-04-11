@@ -3,7 +3,6 @@
 
 package firebase
 
-import firebase.app.App
 import kotlin.js.Promise
 
 external interface Firestore {
@@ -17,9 +16,23 @@ external interface CollectionReference<T> {
     val id: String
     val path: String
     fun get(options: GetOptions? = definedExternally): Promise<QuerySnapshot<T>>
+    fun add(data: T): Promise<DocumentReference<T>>
+    fun doc(documentPath: String? = definedExternally): DocumentReference<T>
+}
+
+external interface DocumentReference<T> {
+    fun get(options: GetOptions? = definedExternally): Promise<DocumentSnapshot<T>>
+}
+
+external interface DocumentSnapshot<T> {
+    fun data(options: SnapshotOptions? = definedExternally): T?
 }
 
 external interface QueryDocumentSnapshot<T> {
+    val exists: Boolean
+    val id: String
+    val metadata: SnapshotMetadata
+    val ref: DocumentReference<T>
     fun data(options: SnapshotOptions? = definedExternally): T
 }
 
