@@ -11,8 +11,6 @@ plugins {
     kotlin("plugin.serialization") version kotlinVersion apply false
 
     kotlin("multiplatform") version kotlinVersion apply false
-
-    kotlin("kapt") version kotlinVersion apply false
 }
 
 subprojects {

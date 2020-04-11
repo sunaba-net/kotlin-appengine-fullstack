@@ -1,9 +1,6 @@
 package net.sunaba
 
 import com.auth0.jwt.algorithms.Algorithm
-import com.google.auth.oauth2.ComputeEngineCredentials
-import com.google.auth.oauth2.GoogleCredentials
-import com.google.auth.oauth2.ServiceAccountCredentials
 import com.google.cloud.secretmanager.v1.SecretManagerServiceClient
 import com.google.cloud.secretmanager.v1.SecretVersionName
 import io.ktor.application.Application
@@ -51,7 +48,7 @@ fun Application.module() {
     install(AppEngineDeferred) {}
 
     //get secretKey from secret manager
-    val secretKey = SecretManagerServiceClient.create().use {
+    val secretKey = if (AppEngine.isLocalEnv) "my-special-secret-key" else SecretManagerServiceClient.create().use {
         it.accessSecretVersion(SecretVersionName.of(gcpProjectId, "session-user-secret", "latest")).payload.data.toStringUtf8()
     }
 
@@ -150,14 +147,6 @@ fun Application.module() {
             }
         }
 
-        get("localScheme") {
-            call.respondText(call.request.local.scheme)
-        }
-
-        get("originScheme") {
-            call.respondText(call.request.origin.scheme)
-        }
-
         get("uris") {
             call.respond(mapOf<String, Any>(
                     "origin.scheme" to call.request.origin.scheme,
@@ -171,20 +160,11 @@ fun Application.module() {
             ))
         }
 
-        get("headers") {
-            call.respond(call.request.headers.entries().map {
-                it.key to it.value
-            }.toMap())
-        }
-
         static {
             val staticPath = if (AppEngine.isLocalEnv) "build/staged-app/web" else "web"
             files("$staticPath")
             default("$staticPath/index.html")
         }
-
-
-
     }
 }
 
