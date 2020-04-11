@@ -4,15 +4,16 @@ package net.sunaba.appengine
 import com.google.cloud.tasks.v2.*
 import com.google.protobuf.ByteString
 import com.google.protobuf.Timestamp
-import io.ktor.application.*
+import io.ktor.application.Application
+import io.ktor.application.ApplicationFeature
+import io.ktor.application.call
+import io.ktor.application.feature
 import io.ktor.http.Headers
 import io.ktor.http.HttpStatusCode
 import io.ktor.response.respond
 import io.ktor.routing.post
 import io.ktor.routing.routing
-import io.ktor.server.engine.EnginePipeline
 import io.ktor.util.AttributeKey
-import io.ktor.util.pipeline.intercept
 import io.ktor.utils.io.jvm.javaio.toInputStream
 import java.io.ByteArrayOutputStream
 import java.io.ObjectInputStream
@@ -93,14 +94,14 @@ private fun Task.verify(headers: Headers): Boolean {
     return taskToken == requestHeaderToken
 }
 
-val SCHEDULE_IMMEDIATE: Date = Date(0L)
+val IMMEDIATE: Date = Date(0L)
 
 private fun Date.toTimestamp(): Timestamp = Timestamp.newBuilder()
         .setSeconds(time / 1000)
         .setNanos(1000 * (time % 1000).toInt()).build()
 
 fun Application.deferred(task: DeferredTask, queue: String = "default", service: String = "default"
-                         , scheduleTime: Date = SCHEDULE_IMMEDIATE): Task {
+                         , scheduleTime: Date = IMMEDIATE): Task {
     val feature = feature(AppEngineDeferred)
     val config = feature.config
     val path = config.path
@@ -123,7 +124,7 @@ fun Application.deferred(task: DeferredTask, queue: String = "default", service:
 
     val taskBuilder = Task.newBuilder()
             .setAppEngineHttpRequest(requestBuilder.build())
-    if (scheduleTime != SCHEDULE_IMMEDIATE) {
+    if (scheduleTime != IMMEDIATE) {
         taskBuilder.setScheduleTime(scheduleTime.toTimestamp())
     }
 

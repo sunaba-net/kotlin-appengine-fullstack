@@ -11,20 +11,20 @@ dependencies {
     implementation(ktor("server-core"))
     implementation(ktor("server-netty"))
     implementation(ktor("client-cio"))
-    implementation(ktor("serialization"))
     implementation(ktor("auth"))
     implementation(ktor("auth-jwt"))
     implementation(ktor("websockets"))
+    implementation(ktor("serialization"))
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-cbor:0.20.0")
 
     implementation(project(":model"))
 
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit"))
 
-    implementation("com.google.cloud:google-cloud-tasks:1.29.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-cbor:0.20.0")
     implementation("com.google.apis:google-api-services-cloudresourcemanager:v1-rev572-1.25.0")
     implementation("com.google.cloud:google-cloud-secretmanager:1.0.0")
+    implementation("com.google.cloud:google-cloud-tasks:1.29.1")
 }
 
 tasks {
