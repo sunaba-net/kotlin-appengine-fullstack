@@ -2,13 +2,12 @@
 
 package firebase.app
 
+import firebase.Firestore
 import firebase.auth.Auth
 
 
 external interface App {
     val name: String
-    val options:dynamic
-
-    fun auth(): Auth
+    val options: dynamic
 }
 

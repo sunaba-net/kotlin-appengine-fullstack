@@ -10,9 +10,9 @@ external class Auth {
     val app: App
     val currentUser: User?
 
-    fun onIdTokenChanged(action: (user:User)->Unit)
-    fun signInWithPopup(provider:AuthProvider):Promise<UserCredential>
-    fun signInWithEmailAndPassword(email:String, password:String):Promise<UserCredential>
+    fun onIdTokenChanged(action: (user: User) -> Unit)
+    fun signInWithPopup(provider: AuthProvider): Promise<UserCredential>
+    fun signInWithEmailAndPassword(email: String, password: String): Promise<UserCredential>
 }
 
 open external class UserInfo {
@@ -55,56 +55,59 @@ open external class AuthCredential {
 }
 
 external interface UserCredential {
-    val additionalUserInfo:AdditionalUserInfo?
-    val credential:AuthCredential
-    val operationType:String?
-    val user:User
+    val additionalUserInfo: AdditionalUserInfo?
+    val credential: AuthCredential
+    val operationType: String?
+    val user: User
 }
 
-external interface  AdditionalUserInfo {
-    val isNewUser:Boolean
-    val profile:dynamic
-    val providerId:String
-    val username:String?
+external interface AdditionalUserInfo {
+    val isNewUser: Boolean
+    val profile: dynamic
+    val providerId: String
+    val username: String?
 }
 
 open external class AuthProvider {
-    val providerId:String
+    val providerId: String
 }
 
-external class EmailAuthProvider:AuthProvider {
+external class EmailAuthProvider : AuthProvider {
     companion object {
-        val EMAIL_LINK_SIGN_IN_METHOD:String
-        val EMAIL_PASSWORD_SIGN_IN_METHOD:String
-        val PROVIDER_ID:String
-        fun credential(email:String, password:String):AuthCredential
-        fun credentialWithLink(email: String, emailLink: String):AuthCredential
+        val EMAIL_LINK_SIGN_IN_METHOD: String
+        val EMAIL_PASSWORD_SIGN_IN_METHOD: String
+        val PROVIDER_ID: String
+        fun credential(email: String, password: String): AuthCredential
+        fun credentialWithLink(email: String, emailLink: String): AuthCredential
     }
 }
-external class FacebookAuthProvider:AuthProvider {
+
+external class FacebookAuthProvider : AuthProvider {
     companion object {
-        val FACEBOOK_SIGN_IN_METHOD:String
-        val PROVIDER_ID:String
-        fun credential(token:String):OAuthCredential
+        val FACEBOOK_SIGN_IN_METHOD: String
+        val PROVIDER_ID: String
+        fun credential(token: String): OAuthCredential
     }
-    fun addScope(scope:String):AuthProvider
-    fun setCustomParameters(customOAuthParameters:dynamic):AuthProvider
+
+    fun addScope(scope: String): AuthProvider
+    fun setCustomParameters(customOAuthParameters: dynamic): AuthProvider
 }
 
-external class GoogleAuthProvider:AuthProvider {
+external class GoogleAuthProvider : AuthProvider {
     companion object {
-        val GOOGLE_SIGN_IN_METHOD:String
-        val PROVIDER_ID:String
-        fun credential(idToken :String, accessToken:String?):OAuthCredential
+        val GOOGLE_SIGN_IN_METHOD: String
+        val PROVIDER_ID: String
+        fun credential(idToken: String, accessToken: String?): OAuthCredential
     }
-    fun addScope(scope:String):AuthProvider
-    fun setCustomParameters(customOAuthParameters:dynamic):AuthProvider
+
+    fun addScope(scope: String): AuthProvider
+    fun setCustomParameters(customOAuthParameters: dynamic): AuthProvider
 }
 
-external class OAuthCredential:AuthCredential {
-    val accessToken:String
+external class OAuthCredential : AuthCredential {
+    val accessToken: String
 
     companion object {
-        fun fromJSON(json:dynamic):AuthCredential
+        fun fromJSON(json: dynamic): AuthCredential
     }
 }
