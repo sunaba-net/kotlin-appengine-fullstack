@@ -100,6 +100,7 @@ private fun Date.toTimestamp(): Timestamp = Timestamp.newBuilder()
         .setSeconds(time / 1000)
         .setNanos(1000 * (time % 1000).toInt()).build()
 
+
 fun Application.deferred(task: DeferredTask, queue: String = "default", service: String = "default"
                          , scheduleTime: Date = IMMEDIATE): Task {
     val feature = feature(AppEngineDeferred)
