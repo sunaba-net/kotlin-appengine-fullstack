@@ -12,16 +12,21 @@ external interface Firestore {
     val CACHE_SIZE_UNLIMITED: Number
 }
 
-external interface CollectionReference<T> {
+external interface Query<T> {
+    fun get(options: GetOptions? = definedExternally): Promise<QuerySnapshot<T>>
+    fun onSnapshot(next:(snapshot:QuerySnapshot<T>)->Unit ,error:(error:dynamic)->Unit = definedExternally, complete:()->Unit = definedExternally):()->Unit
+}
+
+external interface CollectionReference<T>:Query<T> {
     val id: String
     val path: String
-    fun get(options: GetOptions? = definedExternally): Promise<QuerySnapshot<T>>
     fun add(data: T): Promise<DocumentReference<T>>
     fun doc(documentPath: String? = definedExternally): DocumentReference<T>
 }
 
 external interface DocumentReference<T> {
     fun get(options: GetOptions? = definedExternally): Promise<DocumentSnapshot<T>>
+    fun onSnapshot(next:(snapshot:DocumentSnapshot<T>)->Unit ,error:(error:dynamic)->Unit = definedExternally, complete:()->Unit = definedExternally):()->Unit
 }
 
 external interface DocumentSnapshot<T> {
@@ -42,6 +47,7 @@ external interface QuerySnapshot<T> {
     val docs: Array<QueryDocumentSnapshot<T>>
     val empty: Boolean
     val metadata: SnapshotMetadata
+    fun forEach(callback: (data:T)->Unit)
 }
 
 external interface SnapshotMetadata {}
