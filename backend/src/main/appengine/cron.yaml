@@ -1,0 +1,4 @@
+cron:
+- description: "cron test"
+  url: /cron/test
+  schedule: every 5 mins
