@@ -1,9 +1,17 @@
 package net.sunaba
 
 import com.auth0.jwt.algorithms.Algorithm
+import com.google.api.client.json.jackson2.JacksonFactory
+import com.google.api.services.cloudresourcemanager.CloudResourceManager
+import com.google.auth.http.HttpCredentialsAdapter
+import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.secretmanager.v1.SecretManagerServiceClient
 import com.google.cloud.secretmanager.v1.SecretVersionName
+import com.google.firebase.FirebaseApp
+import com.google.firebase.FirebaseOptions
+import com.google.firebase.cloud.FirestoreClient
 import io.ktor.application.Application
+import io.ktor.application.application
 import io.ktor.application.call
 import io.ktor.application.install
 import io.ktor.auth.Authentication
@@ -12,7 +20,11 @@ import io.ktor.auth.authenticate
 import io.ktor.features.*
 import io.ktor.http.ContentType
 import io.ktor.http.CookieEncoding
-import io.ktor.http.cio.websocket.*
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.cio.websocket.CloseReason
+import io.ktor.http.cio.websocket.Frame
+import io.ktor.http.cio.websocket.close
+import io.ktor.http.cio.websocket.readText
 import io.ktor.http.content.default
 import io.ktor.http.content.files
 import io.ktor.http.content.static
@@ -20,23 +32,27 @@ import io.ktor.request.path
 import io.ktor.response.respond
 import io.ktor.response.respondRedirect
 import io.ktor.response.respondText
+import io.ktor.routing.Routing
 import io.ktor.routing.get
 import io.ktor.routing.route
 import io.ktor.routing.routing
 import io.ktor.serialization.json
 import io.ktor.serialization.serialization
 import io.ktor.sessions.*
+import io.ktor.util.toMap
 import io.ktor.websocket.WebSockets
 import io.ktor.websocket.webSocket
 import kotlinx.serialization.cbor.Cbor
 import kotlinx.serialization.json.JsonConfiguration
-import net.sunaba.appengine.*
+import net.sunaba.appengine.AppEngine
+import net.sunaba.appengine.AppEngineDeferred
+import net.sunaba.appengine.deferred
 import net.sunaba.auth.*
+import net.sunaba.gogleapis.SharedHttpTransportFactory
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.net.URLEncoder
-import java.util.*
-import kotlin.random.Random
+
 
 fun Application.module() {
     val gcpProjectId = if (AppEngine.isServiceEnv) AppEngine.Env.GOOGLE_CLOUD_PROJECT.value else "ktor-sunaba"
@@ -47,8 +63,8 @@ fun Application.module() {
     }
     install(AppEngineDeferred) {}
 
-    //get secretKey from secret manager
     val secretKey = if (AppEngine.isLocalEnv) "my-special-secret-key" else SecretManagerServiceClient.create().use {
+        //get secretKey from secret manager
         it.accessSecretVersion(SecretVersionName.of(gcpProjectId, "session-user-secret", "latest")).payload.data.toStringUtf8()
     }
 
@@ -74,9 +90,19 @@ fun Application.module() {
     install(Authentication) {
         register(googleSignIn)
         provider("admin") {
-            pipeline.intercept(AuthenticationPipeline.CheckAuthentication) {
+            pipeline.intercept(AuthenticationPipeline.RequestAuthentication) {
                 if (true != this.call.sessions.get<User>()?.admin) {
                     call.respondRedirect(googleSignIn.path + "?continue=" + URLEncoder.encode(call.request.path(), "UTF-8"))
+                    subject.challenge.complete()
+                }
+            }
+        }
+        //@see https://cloud.google.com/appengine/docs/standard/java11/scheduling-jobs-with-cron-yaml
+        provider("cron") {
+            pipeline.intercept(AuthenticationPipeline.RequestAuthentication) {
+                if (!"true".equals(call.request.headers["X-Appengine-Cron"])) {
+                    call.respond(HttpStatusCode.Unauthorized)
+                    subject.challenge.complete()
                 }
             }
         }
@@ -101,6 +127,19 @@ fun Application.module() {
     routing {
         installLogin(googleSignIn)
 
+        routeAdmin()
+
+        authenticate("cron") {
+            get("/cron/test") {
+
+                println(call.request.headers.toMap())
+
+                call.respondText("test")
+            }
+        }
+
+
+
         webSocket("echo") {
             for (frame in incoming) {
                 when (frame) {
@@ -114,52 +153,6 @@ fun Application.module() {
                 }
             }
         }
-
-        authenticate("admin") {
-            route("admin") {
-
-                get("props") {
-                    call.respond(System.getProperties().map { it.key.toString() to it.value.toString() }.toMap())
-                }
-
-                get("env") {
-                    call.respond(System.getenv().map { it.key.toString() to it.value.toString() }.toMap())
-                }
-
-                get("gae_env") {
-                    call.respond(AppEngine.Env.values().map { it.key to it.value }.toMap())
-                }
-
-                get("gae_meta") {
-                    call.respond(AppEngine.metaData.map { it.key.path to it.value }.toMap())
-                }
-
-                get("/tasks/add") {
-                    call.respondText(deferred(TestRetry(3)).name)
-
-                }
-
-                get("/tasks/add2") {
-                    call.respondText(deferred(TestRetry(3)
-                            , scheduleTime = Date(Date().time + 60 * 1000)).name)
-                }
-
-            }
-        }
-
-        get("uris") {
-            call.respond(mapOf<String, Any>(
-                    "origin.scheme" to call.request.origin.scheme,
-                    "origin.host" to call.request.origin.host,
-                    "origin.uri" to call.request.origin.uri,
-                    "origin.remoteHost" to call.request.origin.remoteHost,
-                    "local.scheme" to call.request.local.scheme,
-                    "local.host" to call.request.local.host,
-                    "local.uri" to call.request.local.uri,
-                    "local.remoteHost" to call.request.local.remoteHost
-            ))
-        }
-
         static {
             val staticPath = if (AppEngine.isLocalEnv) "build/staged-app/web" else "web"
             files("$staticPath")
@@ -181,4 +174,67 @@ private fun Application.installStatusPageFeature() {
             throw cause
         }
     }
+}
+
+private fun Routing.routeAdmin() = authenticate("admin") {
+    route("admin") {
+
+        get("props") {
+            call.respond(java.lang.System.getProperties().map { it.key.toString() to it.value.toString() }.toMap())
+        }
+
+        get("env") {
+            call.respond(java.lang.System.getenv().map { it.key.toString() to it.value.toString() }.toMap())
+        }
+
+        get("gae_env") {
+            call.respond(net.sunaba.appengine.AppEngine.Env.values().map { it.key to it.value }.toMap())
+        }
+
+        get("gae_meta") {
+            call.respond(net.sunaba.appengine.AppEngine.metaData.map { it.key.path to it.value }.toMap())
+        }
+
+        get("/tasks/add") {
+            call.respondText(application.deferred(net.sunaba.appengine.TestRetry(3)).name)
+
+        }
+
+        get("/tasks/add2") {
+            call.respondText(application.deferred(net.sunaba.appengine.TestRetry(3)
+                    , scheduleTime = java.util.Date(java.util.Date().time + 60 * 1000)).name)
+        }
+    }
+}
+
+fun main() {
+
+    val res = CloudResourceManager.Builder(SharedHttpTransportFactory.sharedInstance, JacksonFactory.getDefaultInstance()
+            , HttpCredentialsAdapter(GoogleCredentials.getApplicationDefault())).build()
+
+
+    val options: FirebaseOptions = FirebaseOptions.builder()
+            .setCredentials(GoogleCredentials.getApplicationDefault())
+            .setProjectId("ktor-sunaba")
+            .setHttpTransport(SharedHttpTransportFactory.sharedInstance)
+            .build()
+
+    val app = FirebaseApp.initializeApp(options)
+    println(app)
+
+    val firestore = FirestoreClient.getFirestore()
+
+    firestore.collection("users")
+            .add(User("123", "test@gmail.com", false)).get()
+
+
+//    println(FirebaseAuth.getInstance().listUsers(null).values)
+//    val firestore = FirestoreClient.getFirestore()
+//    val addUser= firestore.collection("users").add(User("123", "test@gmail.com", false))
+//
+//    while (!addUser.isDone) {
+//        println("waiting...")
+//        Thread.sleep(1000)
+//    }
+
 }
