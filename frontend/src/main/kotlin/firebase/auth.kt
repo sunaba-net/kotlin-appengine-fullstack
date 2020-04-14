@@ -10,6 +10,8 @@ external class Auth {
     val app: App
     val currentUser: User?
 
+    fun signOut():Promise<Unit>
+    fun onAuthStateChanged(action: (user:User?)->Unit)
     fun onIdTokenChanged(action: (user: User) -> Unit)
     fun signInWithPopup(provider: AuthProvider): Promise<UserCredential>
     fun signInWithEmailAndPassword(email: String, password: String): Promise<UserCredential>
