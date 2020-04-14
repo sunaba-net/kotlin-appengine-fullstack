@@ -38,12 +38,12 @@ class AppEngineDeferred(internal val config: Configuration) {
             }
         }
 
-        private var _region: String = PROJECT_REGION
+        private var _location: String = PROJECT_REGION
 
-        var region: String
-            get() = if (_region == PROJECT_REGION) AppEngine.currentLocation!! else _region
+        var location: String
+            get() = if (_location == PROJECT_REGION) AppEngine.currentLocation!! else _location
             set(value) {
-                _region = value
+                _location = value
             }
 
         var cloudTasksClientProvider: () -> CloudTasksClient = {
@@ -66,7 +66,7 @@ class AppEngineDeferred(internal val config: Configuration) {
                         return@post
                     }
 
-                    val taskName = TaskName.format(config.projectId, config.region, queue, taskId)
+                    val taskName = TaskName.format(config.projectId, config.location, queue, taskId)
                     val basicTaskRequest = GetTaskRequest.newBuilder().setName(taskName).setResponseView(Task.View.BASIC).build()
                     val task = config.cloudTasksClientProvider().getTask(basicTaskRequest)
                     if (task == null || !task.verify(call.request.headers)) {
@@ -115,7 +115,7 @@ fun Application.deferred(task: DeferredTask, queue: String = "default", service:
         it.toByteArray()
     }
     val random = Base64.getEncoder().encodeToString(Random.nextBytes(TOKEN_BYTES))
-    val queuePath = QueueName.of(config.projectId, config.region, queue)
+    val queuePath = QueueName.of(config.projectId, config.location, queue)
     val requestBuilder = AppEngineHttpRequest.newBuilder()
             .setRelativeUri(path)
             .setBody(ByteString.copyFrom(body))
