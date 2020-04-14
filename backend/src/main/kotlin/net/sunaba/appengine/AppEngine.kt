@@ -2,6 +2,7 @@ package net.sunaba.appengine
 
 
 import com.google.api.client.json.jackson2.JacksonFactory
+import com.google.api.services.appengine.v1.Appengine
 import com.google.api.services.cloudresourcemanager.CloudResourceManager
 import com.google.auth.http.HttpCredentialsAdapter
 import com.google.auth.oauth2.GoogleCredentials
@@ -78,10 +79,10 @@ object AppEngine : CoroutineScope {
         }
     }
 
-    val currentRegion: String? by lazy {
-        metaData[MetaPath.ZONE]?.let {
-            it.split("/").last().let { it.substring(0, it.lastIndexOf('-')) }
-        }
+    val currentLocation: String? by lazy {
+        val appengine = Appengine.Builder(SharedHttpTransportFactory.sharedInstance
+                , JacksonFactory.getDefaultInstance(), HttpCredentialsAdapter(GoogleCredentials.getApplicationDefault())).build()
+        appengine.apps().get("ktor-sunaba").execute().locationId
     }
 
     fun isOwner(projectId: String = Env.GOOGLE_CLOUD_PROJECT.value, email: String?) = getOwners(projectId).contains("user:${email}")

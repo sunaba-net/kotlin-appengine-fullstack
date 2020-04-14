@@ -56,7 +56,10 @@ fun Application.module() {
         json(JsonConfiguration.Stable)
         serialization(ContentType.Application.Cbor, Cbor())
     }
-    install(AppEngineDeferred) {}
+    install(AppEngineDeferred) {
+        projectId = gcpProjectId
+
+    }
 
     val secretKey = if (AppEngine.isLocalEnv) "my-special-secret-key" else SecretManagerServiceClient.create().use {
         //get secretKey from secret manager

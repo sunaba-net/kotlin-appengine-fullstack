@@ -31,17 +31,17 @@ class AppEngineDeferred(internal val config: Configuration) {
                         , var projectId: String = System.getenv("GOOGLE_CLOUD_PROJECT") ?: ""
     ) {
         companion object {
-            // Acquisition of metadata is costly, so delay acquisition
-            const val GCLOUD_REGION: String = "__GCLOUD_REGION__"
+            // Acquisition of getCurrentLocation is costly, so delay acquisition
+            const val PROJECT_REGION: String = "__PROJECT_REGION__"
             private val CLIENT_INSTANCE: CloudTasksClient by lazy {
                 CloudTasksClient.create()
             }
         }
 
-        private var _region: String = GCLOUD_REGION
+        private var _region: String = PROJECT_REGION
 
         var region: String
-            get() = if (_region == GCLOUD_REGION) AppEngine.currentRegion!! else _region
+            get() = if (_region == PROJECT_REGION) AppEngine.currentLocation!! else _region
             set(value) {
                 _region = value
             }
