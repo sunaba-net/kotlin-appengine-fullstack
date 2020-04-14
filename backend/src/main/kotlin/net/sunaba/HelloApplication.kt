@@ -8,10 +8,7 @@ import io.ktor.application.Application
 import io.ktor.application.application
 import io.ktor.application.call
 import io.ktor.application.install
-import io.ktor.auth.Authentication
-import io.ktor.auth.AuthenticationFailedCause
-import io.ktor.auth.AuthenticationPipeline
-import io.ktor.auth.authenticate
+import io.ktor.auth.*
 import io.ktor.features.*
 import io.ktor.http.ContentType
 import io.ktor.http.CookieEncoding
@@ -33,8 +30,10 @@ import io.ktor.routing.route
 import io.ktor.routing.routing
 import io.ktor.serialization.json
 import io.ktor.serialization.serialization
-import io.ktor.sessions.*
-import io.ktor.util.pipeline.intercept
+import io.ktor.sessions.Sessions
+import io.ktor.sessions.cookie
+import io.ktor.sessions.sessions
+import io.ktor.sessions.set
 import io.ktor.util.toMap
 import io.ktor.websocket.WebSockets
 import io.ktor.websocket.webSocket
@@ -44,13 +43,11 @@ import net.sunaba.appengine.AppEngine
 import net.sunaba.appengine.AppEngineDeferred
 import net.sunaba.appengine.deferred
 import net.sunaba.auth.*
-import net.sunaba.gogleapis.SharedHttpTransportFactory
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.net.URLEncoder
-import kotlin.reflect.full.primaryConstructor
-import kotlin.reflect.jvm.reflect
 
+data class AdminPrincipal(val user: User) : Principal
 
 fun Application.module() {
     val gcpProjectId = if (AppEngine.isServiceEnv) AppEngine.Env.GOOGLE_CLOUD_PROJECT.value else "ktor-sunaba"
@@ -87,14 +84,12 @@ fun Application.module() {
 
     install(Authentication) {
         register(googleSignIn)
-        provider("admin") {
-            pipeline.intercept(AuthenticationPipeline.RequestAuthentication) {
-                if (true != call.sessions.get<User>()?.admin) {
-                    subject.challenge("AdminAuth", AuthenticationFailedCause.NoCredentials) {
-                        call.respondRedirect(googleSignIn.path + "?continue=" + URLEncoder.encode(call.request.path(), "UTF-8"))
-                        subject.complete()
-                    }
-                }
+        session<User>("admin") {
+            validate {
+                if (it.admin) AdminPrincipal(it) else null
+            }
+            challenge {
+                call.respondRedirect(googleSignIn.path + "?continue=" + URLEncoder.encode(call.request.path(), "UTF-8"))
             }
         }
         //@see https://cloud.google.com/appengine/docs/standard/java11/scheduling-jobs-with-cron-yaml
@@ -133,9 +128,7 @@ fun Application.module() {
 
         authenticate("cron") {
             get("/cron/test") {
-
                 println(call.request.headers.toMap())
-
                 call.respondText("test")
             }
         }
@@ -185,6 +178,10 @@ private fun Application.installStatusPageFeature() {
 
 private fun Routing.routeAdmin() = authenticate("admin") {
     route("admin") {
+
+        get("user") {
+            call.respond((call.authentication.principal as AdminPrincipal).user.id)
+        }
 
         get("props") {
             call.respond(java.lang.System.getProperties().map { it.key.toString() to it.value.toString() }.toMap())
