@@ -1,6 +1,7 @@
 package net.sunaba.appengine
 
 
+import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.services.appengine.v1.Appengine
 import com.google.api.services.cloudresourcemanager.CloudResourceManager
@@ -80,9 +81,13 @@ object AppEngine : CoroutineScope {
     }
 
     val currentLocation: String? by lazy {
-        val appengine = Appengine.Builder(SharedHttpTransportFactory.sharedInstance
+        getLocation(Env.GOOGLE_CLOUD_PROJECT.value)
+    }
+
+    fun getLocation(projectId:String):String {
+        val appengine = Appengine.Builder(NetHttpTransport()
                 , JacksonFactory.getDefaultInstance(), HttpCredentialsAdapter(GoogleCredentials.getApplicationDefault())).build()
-        appengine.apps().get("ktor-sunaba").execute().locationId
+        return appengine.apps().get(projectId).execute().locationId
     }
 
     fun isOwner(projectId: String = Env.GOOGLE_CLOUD_PROJECT.value, email: String?) = getOwners(projectId).contains("user:${email}")

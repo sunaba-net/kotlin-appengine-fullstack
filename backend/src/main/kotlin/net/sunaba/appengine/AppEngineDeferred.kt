@@ -38,13 +38,18 @@ class AppEngineDeferred(internal val config: Configuration) {
             }
         }
 
-        private var _location: String = PROJECT_REGION
-
-        var location: String
-            get() = if (_location == PROJECT_REGION) AppEngine.currentLocation!! else _location
-            set(value) {
-                _location = value
-            }
+        var location: String = PROJECT_REGION
+            get() = if (field == PROJECT_REGION) {
+                AppEngine.currentLocation!!.let {
+                    //https://cloud.google.com/tasks/docs/tutorial-gcf
+                    // Note that two locations, called europe-west and us-central in App Engine commands, are called, respectively, europe-west1 and us-central1 in Cloud Tasks commands.
+                    when (AppEngine.currentLocation!!) {
+                        "europe-west" -> "europe-west1"
+                        "us-central" -> "us-central1"
+                        else-> it
+                    }
+                }
+            } else {field}
 
         var cloudTasksClientProvider: () -> CloudTasksClient = {
             CLIENT_INSTANCE
