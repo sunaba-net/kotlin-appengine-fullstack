@@ -32,14 +32,14 @@ class AppEngineDeferred(internal val config: Configuration) {
     ) {
         companion object {
             // Acquisition of getCurrentLocation is costly, so delay acquisition
-            const val PROJECT_REGION: String = "__PROJECT_REGION__"
+            const val PROJECT_LOCATION: String = "__PROJECT_LOCATION__"
             private val CLIENT_INSTANCE: CloudTasksClient by lazy {
                 CloudTasksClient.create()
             }
         }
 
-        var location: String = PROJECT_REGION
-            get() = if (field == PROJECT_REGION) {
+        var location: String = PROJECT_LOCATION
+            get() = if (field == PROJECT_LOCATION) {
                 AppEngine.currentLocation!!.let {
                     //https://cloud.google.com/tasks/docs/tutorial-gcf
                     // Note that two locations, called europe-west and us-central in App Engine commands, are called, respectively, europe-west1 and us-central1 in Cloud Tasks commands.
